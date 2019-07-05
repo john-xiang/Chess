@@ -1,0 +1,34 @@
+- Finishing implementing valid moves for all chess pieces
+	a. check conditions
+		1. move exposes check, then not allowed
+		2. check for checks after a piece moves
+	b. DONE - pawn promotion
+	c. DONE - en passant
+	d. castling
+		1. DONE king has never moved
+		2. DONE rook has never moved
+		3. DONE square between king and rook are empty
+		4. king is not in check
+		5. king does not pass through square that is attacked
+		6. king does not end up in check
+
+- DONE - implement turns between two players
+
+- Check for game ending situations
+	a. check mate ends game
+	b. stalemate draws game
+
+- Update notation: algebraic notation
+	- move: pieceName oldpos newPos
+	- capture: pieceName oldPos X newPos
+	- if move results in a check: newPos+
+	- check mate: newPos++
+	- castling kingside: 0-0
+	- castline queenside: 0-0-0
+	- pawn promotion: PnewPos=newPiece
+
+- Update visuals for draging/ clicking on piece
+
+- Add buttons to gui
+
+- implement engine features
