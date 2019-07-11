@@ -202,7 +202,8 @@ class Rook(Piece):
                     moves.append((sel_file, sel_rank))
                     distance += 1
                     continue
-                elif selectedsq.piece is not None:        # if square contains a piece, check if ally
+                # if square contains a piece, check if ally
+                elif selectedsq.piece is not None:
                     if self.colour == selectedsq.piece.colour:
                         distance = 1
                         sides += 1
@@ -227,7 +228,8 @@ class Rook(Piece):
                     moves.append((sel_file, sel_rank))
                     distance += 1
                     continue
-                elif selectedsq.piece is not None:        # if square contains a piece, check if ally
+                # if square contains a piece, check if ally
+                elif selectedsq.piece is not None:
                     if self.colour == selectedsq.piece.colour:
                         distance = 1
                         sides += 1
@@ -328,11 +330,8 @@ class Bishop(Piece):
 
     def valid_moves(self, state):
         """Returns all valid moves for bishop piece"""
-        file = self.file
-        rank = self.rank
         current_state = state.squares
         moves = []
-
         # Keeps track of how many squares away we're looking at
         distance = 1
         # Counts which side we're checking
@@ -341,11 +340,11 @@ class Bishop(Piece):
         while sides < 4:
             # NW
             if sides == 0:
-                sel_file = file - distance
-                sel_rank = rank - distance
+                sel_file = self.file - distance
+                sel_rank = self.rank - distance
                 # check if out of bounds
                 if sel_file in range(0, 8) and sel_rank in range(0, 8):
-                    selectedsq = current_state[file-distance, rank-distance]
+                    selectedsq = current_state[sel_file, sel_rank]
                 else:
                     distance = 1
                     sides += 1
@@ -368,10 +367,10 @@ class Bishop(Piece):
                         continue
             # SE
             if sides == 1:
-                sel_file = file + distance
-                sel_rank = rank + distance
+                sel_file = self.file + distance
+                sel_rank = self.rank + distance
                 if sel_file in range(0, 8) and sel_rank in range(0, 8):
-                    selectedsq = current_state[file+distance, rank+distance]
+                    selectedsq = current_state[sel_file, sel_rank]
                 else:
                     distance = 1
                     sides += 1
@@ -394,10 +393,10 @@ class Bishop(Piece):
                         continue
             # SW
             if sides == 2:
-                sel_file = file - distance
-                sel_rank = rank + distance
+                sel_file = self.file - distance
+                sel_rank = self.rank + distance
                 if sel_file in range(0, 8) and sel_rank in range(0, 8):
-                    selectedsq = current_state[file-distance, rank+distance]
+                    selectedsq = current_state[sel_file, sel_rank]
                 else:
                     distance = 1
                     sides += 1
@@ -420,10 +419,10 @@ class Bishop(Piece):
                         continue
             # NE
             if sides == 3:
-                sel_file = file + distance
-                sel_rank = rank - distance
+                sel_file = self.file + distance
+                sel_rank = self.rank - distance
                 if sel_file in range(0, 8) and sel_rank in range(0, 8):
-                    selectedsq = current_state[file+distance, rank-distance]
+                    selectedsq = current_state[sel_file, sel_rank]
                 else:
                     distance = 1
                     sides += 1
@@ -434,7 +433,8 @@ class Bishop(Piece):
                     moves.append((sel_file, sel_rank))
                     distance += 1
                     continue
-                elif selectedsq.piece is not None:       # if square contains a piece, check if ally
+                # if square contains a piece, check if ally
+                elif selectedsq.piece is not None:
                     if self.colour == selectedsq.piece.colour:
                         distance = 1
                         sides += 1
