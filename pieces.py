@@ -726,11 +726,11 @@ class King(Piece):
         if self.first_move and not self.check:
             try:
                 king_side = current_state[k_file, self.rank].piece
-            except:
+            except KeyError:
                 king_side = None
             try:
                 queen_side = current_state[q_file, self.rank].piece
-            except:
+            except KeyError:
                 queen_side = None
 
             if king_side is not None and king_side.piece == 'R' and king_side.first_move:

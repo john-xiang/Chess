@@ -11,8 +11,10 @@ from pieces import Pawn, Rook, Knight, Bishop, Queen, King
 
 class Square:
     """square class contains properties: colour, xy position, coordinates, piece on sq"""
-    def __init__(self, colour=None, position=None, coord=None, piece=None):
+    def __init__(self, colour=None, sqrcolour=None, position=None, coord=None, piece=None):
         self.colour = colour
+        # RGB colour
+        self.sqrcolour = sqrcolour
         self.position = position
         self.coord = coord
         # this is a Piece class
@@ -49,11 +51,29 @@ class State:
         self.last_move = Square()
         self.enpassant = False
         self.enpass_capture = False
+        self.castle = False
         self.wking = None
         self.bking = None
-        self.wpieces = []
-        self.bpieces = []
-        self.castle = False
+
+    def attack_by(self, player, square):
+        """This function outputs all squares/pieces attacking the input square"""
+        atkby = []
+        #sel_piece = square.piece
+        for sqr in self.squares:
+            current_piece = self.squares[sqr].piece
+            if current_piece is not None and player != current_piece.colour:
+                if current_piece.piece != 'P':
+                    atks = current_piece.valid_moves(self)
+                    if square.position in atks:
+                        atkby.append(current_piece.piece)
+                else:
+                    if player == 'w':
+                        atks = ((current_piece.file+1, current_piece.rank+1), (current_piece.file-1, current_piece.rank+1))
+                    elif player == 'b':
+                        atks = ((current_piece.file+1, current_piece.rank-1), (current_piece.file-1, current_piece.rank-1))
+                    if square.position in atks:
+                        atkby.append(current_piece.piece)
+        return atkby
 
 class Board:
     """
@@ -104,13 +124,13 @@ class Board:
                     # draw square
                     pygame.draw.rect(self.display, white, [xfile, yrank, self.cellsize, self.cellsize])
                     # set property for the current square
-                    squares[file, rank] = Square('w', (file, rank), (xfile, yrank))
+                    squares[file, rank] = Square('w', white, (file, rank), (xfile, yrank))
                     switch = False
                 elif not switch:
                     # draw square on display
                     pygame.draw.rect(self.display, black, [xfile, yrank, self.cellsize, self.cellsize])
                     # set property for current square
-                    squares[file, rank] = Square('b', (file, rank), (xfile, yrank))
+                    squares[file, rank] = Square('b', black, (file, rank), (xfile, yrank))
                     switch = True
                 if rank in lines:
                     current_piece = order[placed]
@@ -146,12 +166,6 @@ class Board:
                     self.display.blit(image, squares[file, rank].coord)
                     # Set piece for the current square
                     squares[file, rank].piece = piece
-                    # add piece to all white pieces
-                    if piece.colour == 'w':
-                        self.state.wpieces.append(piece)
-                    elif piece.colour == 'b':
-                        self.state.bpieces.append(piece)
-                    # add piece to all black pieces
                     placed += 1
         pygame.display.update()
         self.state.squares = squares
@@ -161,20 +175,15 @@ class Board:
         self.state.castle = False
 
 
-    def check(self, colour, state):
+    def check(self, player, state):
         """Returns true if player in check, otherwise return false"""
-        if colour == 'w':
+        if player == 'w':
             king = state.squares[state.wking.file, state.wking.rank].piece
-        elif colour == 'b':
+        elif player == 'b':
             king = state.squares[state.bking.file, state.bking.rank].piece
         if king is not None:
-            kfile = king.file
-            krank = king.rank
-            ksq = state.squares[kfile, krank]
-        try:
-            atks = self.attack_by(ksq, state)
-        except:
-            atks = []
+            ksq = state.squares[king.file, king.rank]
+        atks = state.attack_by(player, ksq)
         if not atks:
             return False
         return True
@@ -196,6 +205,58 @@ class Board:
                 return True
         return False
 
+    def checkmate(self, player, state):
+        """
+        Function that determins checkmate
+        checks all squares with pieces on them
+        """
+        all_moves = []
+        for square in state.squares:
+            current_pce = state.squares[square].piece
+            if current_pce is not None and current_pce.colour == player:
+                moves = current_pce.valid_moves(state)
+                for move in moves:
+                    try:
+                        new_state = self.move(current_pce, move[0], move[1], state)
+                    except AttributeError:
+                        new_state = 0
+                    if new_state != 0:
+                        all_moves.append((current_pce, move))
+        # This means all_moves is empty
+        if not all_moves:
+            return True
+        return False
+
+    def checkmate_1(self, player, state):
+        """
+        Function that determines if checkmate is present
+        Requires wpieces, bpieces (missing deleting from list)
+        """
+        all_moves = []
+        if player == 'w':
+            for piece in state.wpieces:
+                moves = piece.valid_moves(state)
+                for move in moves:
+                    try:
+                        new_state = self.move(piece, move[0], move[1], state)
+                    except AttributeError:
+                        new_state = 0
+                    if new_state != 0:
+                        all_moves.append((piece, move))
+        elif player == 'b':
+            for piece in state.bpieces:
+                moves = piece.valid_moves(state)
+                for move in moves:
+                    try:
+                        new_state = self.move(piece, move[0], move[1], state)
+                    except AttributeError:
+                        new_state = 0
+                    if new_state != 0:
+                        all_moves.append((piece, move))
+        if not all_moves:
+            return True
+        return False
+
 
     def attack(self, piece, state):
         """Returns all squares the current piece is attacking"""
@@ -213,27 +274,13 @@ class Board:
                     elif piece.colour == 'b':
                         enpass = (atkfile, atkrank-1)
                     atking.append((enpass))
-            except:
+                elif status == 'X':
+                    if atksq.piece is not None and atksq.piece.colour != piece.colour:
+                        atking.append((atkfile, atkrank))
+            except IndexError:
                 if atksq.piece is not None and atksq.piece.colour != piece.colour:
                     atking.append((atkfile, atkrank))
         return atking
-
-
-    def attack_by(self, square, state):
-        """This function outputs all squares/pieces attacking the input square"""
-        atkby = []
-        sel_piece = square.piece
-        for sqr in state.squares:
-            current_piece = state.squares[sqr].piece
-            if current_piece is not None:
-                atks = current_piece.valid_moves(state)
-                if square.position in atks:
-                    #atkby.append(squares)
-                    if sel_piece is not None and sel_piece.colour != current_piece.colour:
-                        atkby.append(current_piece.piece)
-                    else:
-                        atkby.append(current_piece.piece)
-        return atkby
 
 
     def move(self, piece, new_file, new_rank, state):
@@ -256,10 +303,13 @@ class Board:
                     new_state.squares[new_file, new_rank].piece = Queen(new_file, new_rank, sel_piece.colour)
                     del new_state.squares[file, rank].piece
                     new_state.squares[file, rank].piece = None
+
+                    # Check for check
                     if self.check(sel_piece.colour, new_state):
-                        print('Move is not allowed! King is in check Promotion')
                         return 0
+
                     return new_state
+
                 # Check for special moves
                 try:
                     status = move[2]
@@ -268,9 +318,9 @@ class Board:
                         # Variable for rendering castle move
                         new_state.castle = True
                         # Move the king
-                        del new_state.squares[file, rank].piece
                         sel_piece.move_to(new_file, new_rank)
                         new_state.squares[new_file, new_rank].piece = sel_piece
+                        del new_state.squares[file, rank].piece
                         new_state.squares[file, rank].piece = None
 
                         if sel_piece.colour == 'w':
@@ -278,88 +328,97 @@ class Board:
                         elif sel_piece.colour == 'b':
                             new_state.bking = sel_piece
 
+                        # Check for check
                         if self.check(sel_piece.colour, new_state):
-                            print('Move is not allowed! King is in check C')
                             return 0
 
                         # Castle Queen side
                         if new_file == 2:
-                            # Set the rook to the right side of King
-                            new_state.squares[new_file+1, new_rank].piece = new_state.squares[new_file-2, new_rank].piece
-                            new_state.squares[new_file+1, new_rank].piece.move_to(new_file+1, new_rank)
-                            new_state.squares[new_file+1, new_rank].piece.first_move = False
-                            # remove the old rook
-                            del new_state.squares[new_file-2, new_rank].piece
-                            new_state.squares[new_file-2, new_rank].piece = None
+                            empty_sqr = new_state.squares[new_file+1, new_rank]
+                            atks = new_state.attack_by(sel_piece.colour, empty_sqr)
+                            # Only allow castle if the squares between are not attacked
+                            if not atks:
+                                # Set the rook to the right side of King
+                                new_state.squares[new_file+1, new_rank].piece = new_state.squares[new_file-2, new_rank].piece
+                                new_state.squares[new_file+1, new_rank].piece.move_to(new_file+1, new_rank)
+                                new_state.squares[new_file+1, new_rank].piece.first_move = False
+                                # remove the old rook
+                                del new_state.squares[new_file-2, new_rank].piece
+                                new_state.squares[new_file-2, new_rank].piece = None
+                            else:
+                                return 0
                         # Castle King side
                         elif new_file == 6:
-                            # Set the rook to the left side of King
-                            new_state.squares[new_file-1, new_rank].piece = new_state.squares[new_file+1, new_rank].piece
-                            new_state.squares[new_file-1, new_rank].piece.move_to(new_file-1, new_rank)
-                            new_state.squares[new_file-1, new_rank].piece.first_move = False
-                            # remove the old rook
-                            del new_state.squares[new_file+1, new_rank].piece
-                            new_state.squares[new_file+1, new_rank].piece = None
-
-                        piece.first_move = False
+                            empty_sqr = new_state.squares[new_file-1, new_rank]
+                            atks = new_state.attack_by(sel_piece.colour, empty_sqr)
+                            if not atks:
+                                # Set the rook to the left side of King
+                                new_state.squares[new_file-1, new_rank].piece = new_state.squares[new_file+1, new_rank].piece
+                                new_state.squares[new_file-1, new_rank].piece.move_to(new_file-1, new_rank)
+                                new_state.squares[new_file-1, new_rank].piece.first_move = False
+                                # remove the old rook
+                                del new_state.squares[new_file+1, new_rank].piece
+                                new_state.squares[new_file+1, new_rank].piece = None
+                            else:
+                                return 0
+                        sel_piece.first_move = False
                         return new_state
                     # Double move
                     if status == 'D':
                         sel_piece.double = True
                         sel_piece.first_move = False
                         sel_piece.move_to(new_file, new_rank)
-                        # Delete and old position and set new one
+                        # set piece on new square
+                        new_state.squares[new_file, new_rank].piece = sel_piece
+                        # delete the piece on old square
                         del new_state.squares[file, rank].piece
                         new_state.squares[file, rank].piece = None
-                        new_state.squares[new_file, new_rank].piece = sel_piece
+
                         # CHeck for check
                         if self.check(sel_piece.colour, new_state):
-                            print('Move is not allowed! King is in check D')
                             return 0
+
                         # Change variables
                         new_state.enpassant = True
-                        piece.double = True
-                        piece.first_move = False
-                        piece.move_to(new_file, new_rank)
                         return new_state
                     # en passant
                     if status == 'E' and new_state.enpassant:
                         sel_piece.move_to(new_file, new_rank)
-                        # Delete/set the piece on old position
-                        del new_state.squares[file, rank].piece
-                        new_state.squares[file, rank].piece = None
                         # Delete/set the piece on new position
                         del new_state.squares[new_file, new_rank].piece
                         new_state.squares[new_file, new_rank].piece = sel_piece
+                        # Delete/set the piece on old position
+                        del new_state.squares[file, rank].piece
+                        new_state.squares[file, rank].piece = None
 
                         # if piece is white, pawns go up, if black then goes down
                         if sel_piece.colour == 'w':
-                            del new_state.squares[new_file, new_rank-1].piece
-                            new_state.squares[new_file, new_rank-1].piece = None
-                        elif sel_piece.colour == 'b':
                             del new_state.squares[new_file, new_rank+1].piece
                             new_state.squares[new_file, new_rank+1].piece = None
+                        elif sel_piece.colour == 'b':
+                            del new_state.squares[new_file, new_rank-1].piece
+                            new_state.squares[new_file, new_rank-1].piece = None
 
                         # check for checks
                         if self.check(sel_piece.colour, new_state):
-                            print('Move is not allowed! King is in check E')
                             return 0
 
                         # Tell the board that the next move cannot be an en passant move
                         new_state.enpassant = False
                         # Set variable for rendering enpassant
                         new_state.enpass_capture = True
-                        piece.move_to(new_file, new_rank)
                         return new_state
-                except:
+                except IndexError:
                     if piece.piece == 'K':
-                        del new_state.squares[file, rank].piece
-                        new_state.squares[file, rank].piece = None
-                        del new_state.squares[new_file, new_rank].piece
                         sel_piece.first_move = False
                         sel_piece.check = False
                         sel_piece.move_to(new_file, new_rank)
+                        # set new piece
+                        del new_state.squares[new_file, new_rank].piece
                         new_state.squares[new_file, new_rank].piece = sel_piece
+                        # delete old piece
+                        del new_state.squares[file, rank].piece
+                        new_state.squares[file, rank].piece = None
 
                         # Set the current position of the king
                         if sel_piece.colour == 'w':
@@ -367,35 +426,28 @@ class Board:
                         elif sel_piece.colour == 'b':
                             new_state.bking = sel_piece
 
+                        # Check for check
                         if self.check(sel_piece.colour, new_state):
-                            print('Move is not allowed! King is in check K')
                             return 0
+
                         new_state.castle = False
-                        piece.first_move = False
-                        piece.check = False
-                        piece.move_to(new_file, new_rank)
                         return new_state
                     elif piece.piece == 'P':
                         #piece.double = False
                         pass
-                del new_state.squares[file, rank].piece
-                new_state.squares[file, rank].piece = None
-                del new_state.squares[new_file, new_rank].piece
                 sel_piece.move_to(new_file, new_rank)
                 try:
                     sel_piece.first_move = False
-                except:
+                except AttributeError:
                     pass
+                del new_state.squares[new_file, new_rank].piece
                 new_state.squares[new_file, new_rank].piece = sel_piece
+                del new_state.squares[file, rank].piece
+                new_state.squares[file, rank].piece = None
 
+                # Check for check
                 if self.check(sel_piece.colour, new_state):
-                    print('Move is not allowed! King is in check Other')
                     return 0
-                piece.move_to(new_file, new_rank)
-                try:
-                    piece.first_move = False
-                except:
-                    pass
                 return new_state
         print('Not a valid move')
         return 0

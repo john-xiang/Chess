@@ -1,21 +1,21 @@
-- Finishing implementing valid moves for all chess pieces
+- DONE Finishing implementing valid moves for all chess pieces
 	a. DONE - check conditions
 		1. DONE move exposes check, then not allowed
 		2. DONE check for checks after a piece moves
 	b. DONE - pawn promotion
 	c. DONE - en passant
-	d. castling
+	d. DONE castling
 		1. DONE king has never moved
 		2. DONE rook has never moved
 		3. DONE square between king and rook are empty
 		4. DONE king is not in check
-		5. king does not pass through square that is attacked
-		6. king does not end up in check
+		5. DONE king does not pass through square that is attacked
+		6. DONE king does not end up in check
 
 - DONE - implement turns between two players
 
 - Check for game ending situations
-	a. check mate ends game
+	a. DONE check mate ends game
 	b. stalemate draws game
 
 - Update notation: algebraic notation
