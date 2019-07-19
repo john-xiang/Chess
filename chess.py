@@ -16,6 +16,7 @@ def notation(position):
     note = fnote[position[0]] + rnote[position[1]] + " "
     return note
 
+
 def text_objects(text, font):
     """
     Function returns the text to render and the rectangle it covers
@@ -23,10 +24,12 @@ def text_objects(text, font):
     textsurface = font.render(text, True, BLACK)
     return textsurface, textsurface.get_rect()
 
+
 def quit_game():
     """Quits the game"""
     pygame.quit()
     quit()
+
 
 def button(xposition, yposition, buttonx, buttony, action=None):
     """
@@ -50,21 +53,29 @@ def button(xposition, yposition, buttonx, buttony, action=None):
     #    pygame.draw.rect(GAME_DISPLAY, DARK_WOOD, [buttonx, buttony+85, 175, 60])
     #    pygame.draw.rect(GAME_DISPLAY, DARK_WOOD, [buttonx, buttony+170, 175, 60])
 
-def lit_square(xposition, yposition, state):
+
+def lit_square(xposition, yposition, state, all=None):
     """Function that highlights square when hovering over it"""
     for squares in state:
         sqr = state[squares]
         pce = state[squares].piece
         (x_sq, y_sq) = sqr.coord
         if (x_sq+CELLSIZE) > xposition > x_sq and (y_sq+CELLSIZE) > yposition > y_sq:
-            if pce is not None:
+            if all:
+                pygame.draw.rect(GAME_DISPLAY, GREEN, [x_sq, y_sq, CELLSIZE, CELLSIZE])
+                if pce is not None:
+                    image = pygame.image.load(pce.img)
+                    GAME_DISPLAY.blit(image, (x_sq, y_sq))
+            elif pce is not None:
                 pygame.draw.rect(GAME_DISPLAY, GREEN, [x_sq, y_sq, CELLSIZE, CELLSIZE])
                 image = pygame.image.load(pce.img)
                 GAME_DISPLAY.blit(image, (x_sq, y_sq))
-        elif pce is not None:
+        else:
             pygame.draw.rect(GAME_DISPLAY, sqr.sqrcolour, [x_sq, y_sq, CELLSIZE, CELLSIZE])
-            image = pygame.image.load(pce.img)
-            GAME_DISPLAY.blit(image, (x_sq, y_sq))
+            if pce is not None:
+                image = pygame.image.load(pce.img)
+                GAME_DISPLAY.blit(image, (x_sq, y_sq))
+
 
 def lit_check(piece, state):
     """Hilights king when in check"""
@@ -76,6 +87,7 @@ def lit_check(piece, state):
     pygame.draw.rect(GAME_DISPLAY, RED, [x_sq, y_sq, CELLSIZE, CELLSIZE])
     image = pygame.image.load(piece.img)
     GAME_DISPLAY.blit(image, (x_sq, y_sq))
+
 
 def render_move(file, rank, current_square, new_state):
     """function that makes moves and renders moves"""
@@ -165,35 +177,40 @@ def gameloop():
     # game loop
     game_exit = False
     states = []
-    current_state = board.state
-    lastmove = board.state.last_move
+    # current state, current square and current piece
+    curr_state = board.state
     curr_sq = None
     curr_piece = None
-    checkmate_king = None
-    piece_clicked = False
+    # last move made on the board legal moves
+    lastmove = board.state.last_move
+    # check mate variables
     checkmate = False
+    checked_for_checkmate = False
+    checkmate_king = None
+    # piece clicked and turn variables
+    piece_clicked = False
     turn = 0
 
     while not game_exit:
         # determines if player is in check mate
-        if not checkmate:
-            if current_state.wking.check:
-                if board.checkmate('w', current_state):
+        if not checkmate and not checked_for_checkmate:
+            checked_for_checkmate = True
+            if curr_state.wking.check:
+                if curr_state.checkmate('w'):
+                    print('White King is mated: BLACK WINS')
                     checkmate = True
-                    checkmate_king = current_state.wking
-            elif current_state.bking.check:
-                if board.checkmate('b', current_state):
+                    checkmate_king = curr_state.wking
+            elif curr_state.bking.check:
+                if curr_state.checkmate('b'):
+                    print('Black King is mated: WHITE WINS')
                     checkmate = True
-                    checkmate_king = current_state.bking
+                    checkmate_king = curr_state.bking
 
         # quits the game when exit is pressed
         for event in pygame.event.get():
-            #####################################
-            #print(event)
-            #####################################
-
             # Exit game
             if event.type == pygame.QUIT:
+                print('Thanks for playing!')
                 game_exit = True
 
             if not checkmate:
@@ -216,10 +233,12 @@ def gameloop():
                     if piece_clicked:
                         piece_clicked = False
                         if (file, rank) != curr_sq.position:
-                            # Check if the move is valid before doing it
-                            new_state = board.move(curr_piece, file, rank, current_state)
+                            # Generate set of legal moves
+                            legalmoves = curr_state.legal_moves(curr_piece.colour)
 
-                            if new_state != 0:
+                            if (file, rank) in legalmoves[curr_sq.position]:
+                                checked_for_checkmate = False
+                                new_state = board.move(curr_piece, file, rank, curr_state) 
                                 new_sq = new_state.squares[file, rank]
                                 new_piece = new_sq.piece
                                 render_move(file, rank, curr_sq, new_state)
@@ -229,7 +248,7 @@ def gameloop():
                                 # set the last move
                                 pos = lastmove.position
                                 # check if enemy king is in check
-                                status = board.checking(new_piece, new_state)
+                                status = new_state.checking(new_piece)
                                 if status and new_piece.colour == 'w':
                                     new_state.bking.check = True
                                 elif status and new_piece.colour == 'b':
@@ -243,12 +262,12 @@ def gameloop():
                                     new_state.squares[pos].piece.double = False
                                     lastmove = new_sq
                                     new_state.last_move = new_sq
-                                except:
+                                except (AttributeError, KeyError):
                                     lastmove = new_sq
                                     new_state.last_move = new_sq
                                 # save new state
                                 states.append(new_state)
-                                current_state = new_state
+                                curr_state = new_state
 
                                 # Update the turn counter
                                 if turn == 0:
@@ -262,14 +281,14 @@ def gameloop():
                         else:
                             piece_clicked = True
                     else:       #click
-                        curr_sq = current_state.squares[file, rank]
+                        curr_sq = curr_state.squares[file, rank]
                         curr_piece = curr_sq.piece
 
                         if DEBUG:
                             if turn == 0:
-                                atkedby = current_state.attack_by('w', curr_sq)
+                                atkedby = curr_state.attack_by('w', curr_sq)
                             elif turn == 1:
-                                atkedby = current_state.attack_by('b', curr_sq)
+                                atkedby = curr_state.attack_by('b', curr_sq)
                             print('\nSquare', notation((file, rank)), 'is under attack by:', atkedby)
 
                         # Do nothing if there's no piece on the square
@@ -290,15 +309,15 @@ def gameloop():
                             ########################################################################
                             if DEBUG:
                                 # print location of current kings
-                                #wkingfile = current_state.wking.file
-                                #wkingrank = current_state.wking.rank
-                                #bkingfile = current_state.bking.file
-                                #bkingrank = current_state.bking.rank
+                                #wkingfile = curr_state.wking.file
+                                #wkingrank = curr_state.wking.rank
+                                #bkingfile = curr_state.bking.file
+                                #bkingrank = curr_state.bking.rank
                                 #print('White king is located on', notation((wkingfile, wkingrank)))
                                 #print('Black king is located on', notation((bkingfile, bkingrank)))
 
                                 # Check if under check
-                                status = board.check(curr_piece.colour, current_state)
+                                status = curr_state.check(curr_piece.colour)
                                 # Under check
                                 if status:
                                     print('Your king is under check!')
@@ -308,11 +327,11 @@ def gameloop():
                                     print('The last move was', lastmove.piece.piece, 'on', notation(lastmove.position))
 
                                 # Print Current piece on square
-                                print('\nCurrent piece:', curr_piece.piece)
+                                print('Current piece:', curr_piece.piece)
 
                                 # Print valid moves and all possible attacks
-                                valid_moves = curr_piece.valid_moves(current_state)
-                                atkingsq = board.attack(curr_piece, current_state)
+                                valid_moves = curr_piece.valid_moves(curr_state)
+                                atkingsq = curr_state.attack(curr_piece)
                                 sentence = ''
                                 sentence2 = ''
                                 for move in valid_moves:
@@ -323,67 +342,10 @@ def gameloop():
                                 print('attacking:', sentence2)
                             ########################################################################
 
-                # Mouse unclicked
-                elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                    # Mouse out of bounds
-                    minimum = BUFFER
-                    maximum = (BOARDSIZE*CELLSIZE) + BUFFER
-                    if x_pos < minimum or y_pos < minimum or x_pos >= maximum or y_pos >= maximum:
-                        piece_clicked = False
-                        continue
-                    # Get the coordinates of where the mouse clicked
-                    (file, rank) = int((x_pos-BUFFER)/CELLSIZE), int((y_pos-BUFFER)/CELLSIZE)
-
-                    if piece_clicked:
-                        if (file, rank) != curr_sq.position:
-                            piece_clicked = False
-                            # Check if the move is valid before doing it
-                            new_state = board.move(curr_piece, file, rank, current_state)
-
-                            if new_state != 0:
-                                piece_clicked = False
-                                new_sq = new_state.squares[file, rank]
-                                new_piece = new_sq.piece
-                                render_move(file, rank, curr_sq, new_state)
-
-                                # Increment turn counter
-                                board.turn_num += 1
-                                # set the last move
-                                pos = lastmove.position
-                                # check if enemy king is in check
-                                status = board.checking(new_piece, new_state)
-                                if status and new_piece.colour == 'w':
-                                    new_state.bking.check = True
-                                elif status and new_piece.colour == 'b':
-                                    new_state.wking.check = True
-                                else:
-                                    if new_piece.colour == 'w':
-                                        new_state.bking.check = False
-                                    elif new_piece.colour == 'b':
-                                        new_state.wking.check = False
-                                try: # Sets variable so en passant capture only availble for one turn
-                                    new_state.squares[pos].piece.double = False
-                                    lastmove = new_sq
-                                    new_state.last_move = new_sq
-                                except:
-                                    lastmove = new_sq
-                                    new_state.last_move = new_sq
-                                # save new state
-                                states.append(new_state)
-                                current_state = new_state
-
-                                # Update the turn counter
-                                if turn == 0:
-                                    turn += 1
-                                elif turn == 1:
-                                    turn -= 1
-                                if DEBUG:
-                                    print(curr_piece.piece, 'moved to', notation((file, rank)))
-                                    if status:
-                                        print('Enemy King is in check')
-                        else:
-                            piece_clicked = True
-                lit_square(x_pos, y_pos, current_state.squares)
+                if piece_clicked:
+                    lit_square(x_pos, y_pos, curr_state.squares, True)
+                else:
+                    lit_square(x_pos, y_pos, curr_state.squares)
             else:
                 # mouse position
                 (x_pos, y_pos) = pygame.mouse.get_pos()
@@ -392,7 +354,7 @@ def gameloop():
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     # Reset Game Board
                     button(x_pos, y_pos, buttonx, buttony, gameloop)
-                lit_check(checkmate_king, current_state)
+                lit_check(checkmate_king, curr_state)
             button(x_pos, y_pos, buttonx, buttony)
         pygame.display.update()
     # closes pygame
@@ -403,7 +365,7 @@ def gameloop():
 pygame.init()
 
 # DEBUG VARIABLE
-DEBUG = True
+DEBUG = False
 
 # load FONT
 FONT = pygame.freetype.Font('/home/johnx/Projects/chess/font/OpenSans-Semibold.ttf', 15)
@@ -449,3 +411,67 @@ pygame.display.set_caption('Chess')
 
 # Start game loop
 gameloop()
+
+
+
+
+# Mouse unclicked code
+# elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+#     # Mouse out of bounds
+#     minimum = BUFFER
+#     maximum = (BOARDSIZE*CELLSIZE) + BUFFER
+#     if x_pos < minimum or y_pos < minimum or x_pos >= maximum or y_pos >= maximum:
+#         piece_clicked = False
+#         continue
+#     # Get the coordinates of where the mouse clicked
+#     (file, rank) = int((x_pos-BUFFER)/CELLSIZE), int((y_pos-BUFFER)/CELLSIZE)
+
+#     if piece_clicked:
+#         if (file, rank) != curr_sq.position:
+#             piece_clicked = False
+#             # Check if the move is valid before doing it
+#             new_state = board.move(curr_piece, file, rank, curr_state)
+
+#             if new_state != 0:
+#                 piece_clicked = False
+#                 new_sq = new_state.squares[file, rank]
+#                 new_piece = new_sq.piece
+#                 render_move(file, rank, curr_sq, new_state)
+
+#                 # Increment turn counter
+#                 board.turn_num += 1
+#                 # set the last move
+#                 pos = lastmove.position
+#                 # check if enemy king is in check
+#                 status = new_state.checking(new_piece)
+#                 if status and new_piece.colour == 'w':
+#                     new_state.bking.check = True
+#                 elif status and new_piece.colour == 'b':
+#                     new_state.wking.check = True
+#                 else:
+#                     if new_piece.colour == 'w':
+#                         new_state.bking.check = False
+#                     elif new_piece.colour == 'b':
+#                         new_state.wking.check = False
+#                 try: # Sets variable so en passant capture only availble for one turn
+#                     new_state.squares[pos].piece.double = False
+#                     lastmove = new_sq
+#                     new_state.last_move = new_sq
+#                 except:
+#                     lastmove = new_sq
+#                     new_state.last_move = new_sq
+#                 # save new state
+#                 states.append(new_state)
+#                 curr_state = new_state
+
+#                 # Update the turn counter
+#                 if turn == 0:
+#                     turn += 1
+#                 elif turn == 1:
+#                     turn -= 1
+#                 if DEBUG:
+#                     print(curr_piece.piece, 'moved to', notation((file, rank)))
+#                     if status:
+#                         print('Enemy King is in check')
+#         else:
+#             piece_clicked = True
