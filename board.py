@@ -87,7 +87,6 @@ class State:
     def attack_by(self, player, square):
         """This function outputs all pieces attacking the input square"""
         atkby = []
-        #sel_piece = square.piece
         for sqr in self.squares:
             current_piece = self.squares[sqr].piece
             if current_piece is not None and player != current_piece.colour:
@@ -127,11 +126,11 @@ class State:
             # King is in check
             if pce.piece == 'K' and pce.colour != piece.colour:
                 if pce.colour == 'w':
-                    self.wking.check = True
-                    self.squares[self.wking.file, self.wking.rank].check = True
+                    self.wking.checked = True
+                    self.squares[self.wking.file, self.wking.rank].checked = True
                 elif pce.colour == 'b':
-                    self.bking.check = True
-                    self.squares[self.bking.file, self.bking.rank].check = True
+                    self.bking.checked = True
+                    self.squares[self.bking.file, self.bking.rank].checked = True
                 return True
         return False
 
@@ -158,10 +157,10 @@ class State:
                 moves = current_pce.valid_moves(state)
                 for move in moves:
                     try:
-                        new_state = self.move(current_pce, move[0], move[1], state)
+                        newstate = self.move(current_pce, move[0], move[1], state)
                     except AttributeError:
-                        new_state = 0
-                    if new_state != 0:
+                        newstate = 0
+                    if newstate != 0:
                         all_moves.append((current_pce, move))
         # This means all_moves is empty
         if not all_moves:
@@ -333,134 +332,130 @@ class Board:
         self.state.castle = False
 
 
-    def move(self, piece, new_file, new_rank, state):
+    def move(self, piece, newfile, newrank, state):
         """
         Function that performs the move
         """
         file = piece.file
         rank = piece.rank
-        new_state = copy.deepcopy(state)
-        sel_piece = new_state.squares[file, rank].piece
-        moves = sel_piece.valid_moves(new_state)
+        newstate = copy.deepcopy(state)
+        npiece = newstate.squares[file, rank].piece
+        moves = npiece.valid_moves(newstate)
 
         for move in moves:
             xfile = move[0]
             yrank = move[1]
-            if (new_file, new_rank) == (xfile, yrank):
+            if (newfile, newrank) == (xfile, yrank):
                 # Promotion
-                if sel_piece.piece == 'P' and (new_rank == 0 or new_rank == 7):
-                    new_state.squares[new_file, new_rank].piece = Queen(new_file, new_rank, sel_piece.colour)
-                    del new_state.squares[file, rank].piece
-                    new_state.squares[file, rank].piece = None
-                    return new_state
+                if npiece.piece == 'P' and (newrank == 0 or newrank == 7):
+                    newstate.squares[newfile, newrank].piece = Queen(newfile, newrank, npiece.colour)
+                    del newstate.squares[file, rank].piece
+                    newstate.squares[file, rank].piece = None
+                    return newstate
                 # Check for special moves
                 try:
                     status = move[2]
                 except IndexError:
                     status = 0
-                
+
                 # Castle move
                 if status == 'C':
                     # Variable for rendering castle move
-                    new_state.castle = True
+                    newstate.castle = True
                     # Move the king
-                    sel_piece.move_to(new_file, new_rank)
-                    new_state.squares[new_file, new_rank].piece = sel_piece
-                    del new_state.squares[file, rank].piece
-                    new_state.squares[file, rank].piece = None
+                    npiece.move_to(newfile, newrank)
+                    newstate.squares[newfile, newrank].piece = npiece
+                    del newstate.squares[file, rank].piece
+                    newstate.squares[file, rank].piece = None
 
-                    if sel_piece.colour == 'w':
-                        new_state.wking = sel_piece
-                    elif sel_piece.colour == 'b':
-                        new_state.bking = sel_piece
+                    if npiece.colour == 'w':
+                        newstate.wking = npiece
+                    elif npiece.colour == 'b':
+                        newstate.bking = npiece
 
                     # Castle Queen side
-                    if new_file == 2:
+                    if newfile == 2:
                         # Set the rook to the right side of King
-                        new_state.squares[new_file+1, new_rank].piece = new_state.squares[new_file-2, new_rank].piece
-                        new_state.squares[new_file+1, new_rank].piece.move_to(new_file+1, new_rank)
-                        new_state.squares[new_file+1, new_rank].piece.first_move = False
+                        newstate.squares[newfile+1, newrank].piece = newstate.squares[newfile-2, newrank].piece
+                        newstate.squares[newfile+1, newrank].piece.move_to(newfile+1, newrank)
+                        newstate.squares[newfile+1, newrank].piece.first_move = False
                         # remove the old rook
-                        del new_state.squares[new_file-2, new_rank].piece
-                        new_state.squares[new_file-2, new_rank].piece = None
+                        del newstate.squares[newfile-2, newrank].piece
+                        newstate.squares[newfile-2, newrank].piece = None
                     # Castle King side
-                    elif new_file == 6:
+                    elif newfile == 6:
                         # Set the rook to the left side of King
-                        new_state.squares[new_file-1, new_rank].piece = new_state.squares[new_file+1, new_rank].piece
-                        new_state.squares[new_file-1, new_rank].piece.move_to(new_file-1, new_rank)
-                        new_state.squares[new_file-1, new_rank].piece.first_move = False
+                        newstate.squares[newfile-1, newrank].piece = newstate.squares[newfile+1, newrank].piece
+                        newstate.squares[newfile-1, newrank].piece.move_to(newfile-1, newrank)
+                        newstate.squares[newfile-1, newrank].piece.first_move = False
                         # remove the old rook
-                        del new_state.squares[new_file+1, new_rank].piece
-                        new_state.squares[new_file+1, new_rank].piece = None
-                    sel_piece.first_move = False
-                    return new_state
+                        del newstate.squares[newfile+1, newrank].piece
+                        newstate.squares[newfile+1, newrank].piece = None
+                    npiece.first_move = False
+                    return newstate
                 # Double move
                 elif status == 'D':
-                    sel_piece.double = True
-                    sel_piece.first_move = False
-                    sel_piece.move_to(new_file, new_rank)
+                    npiece.double = True
+                    npiece.first_move = False
+                    npiece.move_to(newfile, newrank)
                     # set piece on new square
-                    new_state.squares[new_file, new_rank].piece = sel_piece
+                    newstate.squares[newfile, newrank].piece = npiece
                     # delete the piece on old square
-                    del new_state.squares[file, rank].piece
-                    new_state.squares[file, rank].piece = None
+                    del newstate.squares[file, rank].piece
+                    newstate.squares[file, rank].piece = None
                     # Change variables
-                    new_state.enpassant = True
-                    return new_state
+                    newstate.enpassant = True
+                    return newstate
                 # en passant
-                elif status == 'E' and new_state.enpassant:
-                    sel_piece.move_to(new_file, new_rank)
+                elif status == 'E' and newstate.enpassant:
+                    npiece.move_to(newfile, newrank)
                     # Delete/set the piece on new position
-                    del new_state.squares[new_file, new_rank].piece
-                    new_state.squares[new_file, new_rank].piece = sel_piece
+                    del newstate.squares[newfile, newrank].piece
+                    newstate.squares[newfile, newrank].piece = npiece
                     # Delete/set the piece on old position
-                    del new_state.squares[file, rank].piece
-                    new_state.squares[file, rank].piece = None
+                    del newstate.squares[file, rank].piece
+                    newstate.squares[file, rank].piece = None
 
                     # if piece is white, pawns go up, if black then goes down
-                    if sel_piece.colour == 'w':
-                        del new_state.squares[new_file, new_rank+1].piece
-                        new_state.squares[new_file, new_rank+1].piece = None
-                    elif sel_piece.colour == 'b':
-                        del new_state.squares[new_file, new_rank-1].piece
-                        new_state.squares[new_file, new_rank-1].piece = None
+                    if npiece.colour == 'w':
+                        del newstate.squares[newfile, newrank+1].piece
+                        newstate.squares[newfile, newrank+1].piece = None
+                    elif npiece.colour == 'b':
+                        del newstate.squares[newfile, newrank-1].piece
+                        newstate.squares[newfile, newrank-1].piece = None
                     # Tell the board that the next move cannot be an en passant move
-                    new_state.enpassant = False
+                    newstate.enpassant = False
                     # Set variable for rendering enpassant
-                    new_state.enpass_capture = True
-                    return new_state
+                    newstate.enpass_capture = True
+                    return newstate
                 else:
                     if piece.piece == 'K':
-                        sel_piece.first_move = False
-                        sel_piece.check = False
-                        sel_piece.move_to(new_file, new_rank)
+                        npiece.first_move = False
+                        npiece.checked = False
+                        npiece.move_to(newfile, newrank)
                         # set new piece
-                        del new_state.squares[new_file, new_rank].piece
-                        new_state.squares[new_file, new_rank].piece = sel_piece
+                        del newstate.squares[newfile, newrank].piece
+                        newstate.squares[newfile, newrank].piece = npiece
                         # delete old piece
-                        del new_state.squares[file, rank].piece
-                        new_state.squares[file, rank].piece = None
+                        del newstate.squares[file, rank].piece
+                        newstate.squares[file, rank].piece = None
 
                         # Set the current position of the king
-                        if sel_piece.colour == 'w':
-                            new_state.wking = sel_piece
-                        elif sel_piece.colour == 'b':
-                            new_state.bking = sel_piece
+                        if npiece.colour == 'w':
+                            newstate.wking = npiece
+                        elif npiece.colour == 'b':
+                            newstate.bking = npiece
 
-                        new_state.castle = False
-                        return new_state
-                    elif piece.piece == 'P':
-                        #piece.double = False
-                        pass
-                sel_piece.move_to(new_file, new_rank)
+                        newstate.castle = False
+                        return newstate
+                npiece.move_to(newfile, newrank)
                 try:
-                    sel_piece.first_move = False
+                    npiece.first_move = False
                 except AttributeError:
                     pass
-                del new_state.squares[new_file, new_rank].piece
-                new_state.squares[new_file, new_rank].piece = sel_piece
-                del new_state.squares[file, rank].piece
-                new_state.squares[file, rank].piece = None
-                return new_state
-        print('Not a valid move')
+                del newstate.squares[newfile, newrank].piece
+                newstate.squares[newfile, newrank].piece = npiece
+                del newstate.squares[file, rank].piece
+                newstate.squares[file, rank].piece = None
+                return newstate
         return 0

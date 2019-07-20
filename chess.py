@@ -54,14 +54,14 @@ def button(xposition, yposition, buttonx, buttony, action=None):
     #    pygame.draw.rect(GAME_DISPLAY, DARK_WOOD, [buttonx, buttony+170, 175, 60])
 
 
-def lit_square(xposition, yposition, state, all=None):
+def lit_square(xposition, yposition, state, clicked=False):
     """Function that highlights square when hovering over it"""
     for squares in state:
         sqr = state[squares]
         pce = state[squares].piece
         (x_sq, y_sq) = sqr.coord
         if (x_sq+CELLSIZE) > xposition > x_sq and (y_sq+CELLSIZE) > yposition > y_sq:
-            if all:
+            if clicked:
                 pygame.draw.rect(GAME_DISPLAY, GREEN, [x_sq, y_sq, CELLSIZE, CELLSIZE])
                 if pce is not None:
                     image = pygame.image.load(pce.img)
@@ -185,6 +185,7 @@ def gameloop():
     lastmove = board.state.last_move
     # check mate variables
     checkmate = False
+    statemate = False
     checked_for_checkmate = False
     checkmate_king = None
     # piece clicked and turn variables
@@ -195,22 +196,32 @@ def gameloop():
         # determines if player is in check mate
         if not checkmate and not checked_for_checkmate:
             checked_for_checkmate = True
-            if curr_state.wking.check:
-                if curr_state.checkmate('w'):
+            if turn == 0: # white's move
+                ismate = curr_state.checkmate('w')
+                if curr_state.wking.checked and ismate:
                     print('White King is mated: BLACK WINS')
                     checkmate = True
                     checkmate_king = curr_state.wking
-            elif curr_state.bking.check:
-                if curr_state.checkmate('b'):
+                elif ismate:
+                    print('Stalemate')
+                    checkmate_king = curr_state.wking
+                    checkmate = True
+            elif turn == 1:
+                ismate = curr_state.checkmate('b')
+                if curr_state.bking.checked and ismate:
                     print('Black King is mated: WHITE WINS')
                     checkmate = True
                     checkmate_king = curr_state.bking
+                elif ismate:
+                    print('Stalemate')
+                    checkmate_king = curr_state.bking
+                    checkmate = True
 
         # quits the game when exit is pressed
         for event in pygame.event.get():
             # Exit game
             if event.type == pygame.QUIT:
-                print('Thanks for playing!')
+                print('Quitting game...')
                 game_exit = True
 
             if not checkmate:
@@ -235,10 +246,10 @@ def gameloop():
                         if (file, rank) != curr_sq.position:
                             # Generate set of legal moves
                             legalmoves = curr_state.legal_moves(curr_piece.colour)
-
+                            # Only make move if intended move is in set of legal moves
                             if (file, rank) in legalmoves[curr_sq.position]:
                                 checked_for_checkmate = False
-                                new_state = board.move(curr_piece, file, rank, curr_state) 
+                                new_state = board.move(curr_piece, file, rank, curr_state)
                                 new_sq = new_state.squares[file, rank]
                                 new_piece = new_sq.piece
                                 render_move(file, rank, curr_sq, new_state)
@@ -250,15 +261,16 @@ def gameloop():
                                 # check if enemy king is in check
                                 status = new_state.checking(new_piece)
                                 if status and new_piece.colour == 'w':
-                                    new_state.bking.check = True
+                                    new_state.bking.checked = True
                                 elif status and new_piece.colour == 'b':
-                                    new_state.wking.check = True
+                                    new_state.wking.checked = True
                                 else:
                                     if new_piece.colour == 'w':
-                                        new_state.bking.check = False
+                                        new_state.bking.checked = False
                                     elif new_piece.colour == 'b':
-                                        new_state.wking.check = False
-                                try: # Sets variable so en passant capture only availble for one turn
+                                        new_state.wking.checked = False
+                                # Sets variable so en passant capture only availble for one turn
+                                try:
                                     new_state.squares[pos].piece.double = False
                                     lastmove = new_sq
                                     new_state.last_move = new_sq
@@ -289,7 +301,7 @@ def gameloop():
                                 atkedby = curr_state.attack_by('w', curr_sq)
                             elif turn == 1:
                                 atkedby = curr_state.attack_by('b', curr_sq)
-                            print('\nSquare', notation((file, rank)), 'is under attack by:', atkedby)
+                            print('\nSquare', notation((file, rank)), 'under attack by:', atkedby)
 
                         # Do nothing if there's no piece on the square
                         if curr_piece is not None:
@@ -445,14 +457,14 @@ gameloop()
 #                 # check if enemy king is in check
 #                 status = new_state.checking(new_piece)
 #                 if status and new_piece.colour == 'w':
-#                     new_state.bking.check = True
+#                     new_state.bking.checked = True
 #                 elif status and new_piece.colour == 'b':
-#                     new_state.wking.check = True
+#                     new_state.wking.checked = True
 #                 else:
 #                     if new_piece.colour == 'w':
-#                         new_state.bking.check = False
+#                         new_state.bking.checked = False
 #                     elif new_piece.colour == 'b':
-#                         new_state.wking.check = False
+#                         new_state.wking.checked = False
 #                 try: # Sets variable so en passant capture only availble for one turn
 #                     new_state.squares[pos].piece.double = False
 #                     lastmove = new_sq

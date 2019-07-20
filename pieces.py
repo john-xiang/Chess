@@ -707,7 +707,7 @@ class King(Piece):
             self.img = '/home/johnx/Projects/chess/png/kingb.png'
         elif colour == 'w':
             self.img = '/home/johnx/Projects/chess/png/kingw.png'
-        self.check = False
+        self.checked = False
         self.first_move = True
 
     def valid_moves(self, state):
@@ -723,7 +723,7 @@ class King(Piece):
         moves = []
 
         # Castling
-        if self.first_move and not self.check:
+        if self.first_move and not self.checked:
             try:
                 king_side = current_state[k_file, self.rank].piece
             except KeyError:
