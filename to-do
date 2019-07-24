@@ -14,21 +14,22 @@
 
 - DONE - implement turns between two players
 
-- Check for game ending situations
+- DONE Check for game ending situations
 	a. DONE check mate ends game
-	b. stalemate draws game
+	b. DONE stalemate draws game
+	- missing repeating moves stalemate
 
-- Update notation: algebraic notation
-	- move: pieceName oldpos newPos
-	- capture: pieceName oldPos X newPos
+- DONE Update notation: algebraic notation
+	- move: pieceName oldpos newPos -
+	- capture: pieceName oldPos X newPos -
 	- if move results in a check: newPos+
-	- check mate: newPos++
-	- castling kingside: 0-0
-	- castline queenside: 0-0-0
-	- pawn promotion: PnewPos=newPiece
+	- check mate: newPos#
+	- castling kingside: 0-0 -
+	- castline queenside: 0-0-0 -
+	- pawn promotion: PnewPos=newPiece -
 
 - Update visuals for draging/ clicking on piece
 
-- Add buttons to gui
+- Add buttons to gui - missing undo move button
 
 - implement engine features

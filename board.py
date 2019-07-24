@@ -43,18 +43,15 @@ class State:
         squares: all squares of the board (each is a square object)
         last_move: the square where last move was made
         enpassant: tells the board whether enpassant capture is available
-        enpass_capture: variable for rendering enpassant
         wking: location of white king
         bking: location of black king
         wpieces: all white pieces
         bpieces: all black pieces
-        castle: variable for rendering castle move
         """
         self.squares = defaultdict()
         self.last_move = Square()
         self.enpassant = False
-        self.enpass_capture = False
-        self.castle = False
+        self.status = ''
         self.wking = None
         self.bking = None
 
@@ -92,14 +89,15 @@ class State:
             if current_piece is not None and player != current_piece.colour:
                 if current_piece.piece != 'P':
                     atks = current_piece.valid_moves(self)
-                    if square.position in atks:
-                        atkby.append(current_piece.piece)
+                    # if square.position in atks:
+                    #     atkby.append(current_piece.piece)
                 else:
                     if player == 'w':
                         atks = ((current_piece.file+1, current_piece.rank+1), (current_piece.file-1, current_piece.rank+1))
                     elif player == 'b':
                         atks = ((current_piece.file+1, current_piece.rank-1), (current_piece.file-1, current_piece.rank-1))
-                    if square.position in atks:
+                for move in atks:
+                    if square.position == (move[0], move[1]):
                         atkby.append(current_piece.piece)
         return atkby
 
@@ -112,6 +110,9 @@ class State:
             king = self.squares[self.bking.file, self.bking.rank].piece
         if king is not None:
             ksq = self.squares[king.file, king.rank]
+        else:
+            print('no king square')
+            return False
         atks = self.attack_by(player, ksq)
         if not atks:
             return False
@@ -174,8 +175,7 @@ class State:
         for square in self.squares:
             sqr = self.squares[square]
             if sqr.piece is not None and sqr.piece.colour == player:
-                piece_moves = sqr.piece.valid_moves(self)
-                for move in piece_moves:
+                for move in sqr.piece.valid_moves(self):
                     try:
                         status = move[2]
                     except IndexError:
@@ -211,24 +211,19 @@ class State:
         try_piece = try_state.squares[piece.file, piece.rank].piece
         # remove piece on new square
         del try_state.squares[file, rank].piece
-        try_state.squares[file, rank].piece = try_piece
         try_piece.move_to(file, rank)
+        try_state.squares[file, rank].piece = try_piece
         # remove piece on old square
         del try_state.squares[piece.file, piece.rank].piece
         try_state.squares[piece.file, piece.rank].piece = None
 
-        if piece.piece == 'K':
-            if piece.colour == 'w':
+        if try_piece.piece == 'K':
+            if try_piece.colour == 'w':
                 try_state.wking = try_piece
-            elif piece.colour == 'b':
+            elif try_piece.colour == 'b':
                 try_state.bking = try_piece
-
         if try_state.check(piece.colour):
-            del try_state
-            del try_piece
             return False
-        del try_state
-        del try_piece
         return True
 
 
@@ -244,11 +239,15 @@ class Board:
         cellsize: size of each square
         state: state object
         turn_num: keeps track of the turn number
+        enpass_capture: variable for rendering enpassant
+        castle: variable for rendering castle move
         """
         self.display = display
         self.cellsize = cellsize
         self.state = State()
         self.turn_num = 0
+        self.enpass_capture = False
+        self.castle = False
 
 
     def set_board(self):
@@ -328,8 +327,8 @@ class Board:
         self.state.squares = squares
         self.state.last_move = Square()
         self.state.enpassant = False
-        self.state.enpass_capture = False
-        self.state.castle = False
+        self.enpass_capture = False
+        self.castle = False
 
 
     def move(self, piece, newfile, newrank, state):
@@ -351,6 +350,7 @@ class Board:
                     newstate.squares[newfile, newrank].piece = Queen(newfile, newrank, npiece.colour)
                     del newstate.squares[file, rank].piece
                     newstate.squares[file, rank].piece = None
+                    newstate.status = '='
                     return newstate
                 # Check for special moves
                 try:
@@ -361,7 +361,7 @@ class Board:
                 # Castle move
                 if status == 'C':
                     # Variable for rendering castle move
-                    newstate.castle = True
+                    self.castle = True
                     # Move the king
                     npiece.move_to(newfile, newrank)
                     newstate.squares[newfile, newrank].piece = npiece
@@ -382,6 +382,7 @@ class Board:
                         # remove the old rook
                         del newstate.squares[newfile-2, newrank].piece
                         newstate.squares[newfile-2, newrank].piece = None
+                        newstate.status = '0-0-0'
                     # Castle King side
                     elif newfile == 6:
                         # Set the rook to the left side of King
@@ -391,6 +392,7 @@ class Board:
                         # remove the old rook
                         del newstate.squares[newfile+1, newrank].piece
                         newstate.squares[newfile+1, newrank].piece = None
+                        newstate.status = '0-0'
                     npiece.first_move = False
                     return newstate
                 # Double move
@@ -405,6 +407,7 @@ class Board:
                     newstate.squares[file, rank].piece = None
                     # Change variables
                     newstate.enpassant = True
+                    newstate.status = ''
                     return newstate
                 # en passant
                 elif status == 'E' and newstate.enpassant:
@@ -426,28 +429,29 @@ class Board:
                     # Tell the board that the next move cannot be an en passant move
                     newstate.enpassant = False
                     # Set variable for rendering enpassant
-                    newstate.enpass_capture = True
+                    self.enpass_capture = True
+                    newstate.status = 'x'
                     return newstate
-                else:
-                    if piece.piece == 'K':
-                        npiece.first_move = False
-                        npiece.checked = False
-                        npiece.move_to(newfile, newrank)
-                        # set new piece
-                        del newstate.squares[newfile, newrank].piece
-                        newstate.squares[newfile, newrank].piece = npiece
-                        # delete old piece
-                        del newstate.squares[file, rank].piece
-                        newstate.squares[file, rank].piece = None
+                elif piece.piece == 'K':
+                    npiece.first_move = False
+                    npiece.checked = False
+                    npiece.move_to(newfile, newrank)
+                    # set new piece
+                    del newstate.squares[newfile, newrank].piece
+                    newstate.squares[newfile, newrank].piece = npiece
+                    # delete old piece
+                    del newstate.squares[file, rank].piece
+                    newstate.squares[file, rank].piece = None
 
-                        # Set the current position of the king
-                        if npiece.colour == 'w':
-                            newstate.wking = npiece
-                        elif npiece.colour == 'b':
-                            newstate.bking = npiece
+                    # Set the current position of the king
+                    if npiece.colour == 'w':
+                        newstate.wking = npiece
+                    elif npiece.colour == 'b':
+                        newstate.bking = npiece
 
-                        newstate.castle = False
-                        return newstate
+                    self.castle = False
+                    newstate.status = ''
+                    return newstate
                 npiece.move_to(newfile, newrank)
                 try:
                     npiece.first_move = False
@@ -457,5 +461,9 @@ class Board:
                 newstate.squares[newfile, newrank].piece = npiece
                 del newstate.squares[file, rank].piece
                 newstate.squares[file, rank].piece = None
+                if status == 'X':
+                    newstate.status = 'x'
+                else:
+                    newstate.status = ''
                 return newstate
         return 0

@@ -70,7 +70,7 @@ class Pawn(Piece):
                 # first move can move two spaces up
                 if self.first_move and current_state[file, rank+2].piece is None:
                     moves.append((file, rank+2, 'D'))
-            # Captures
+            # Capture
             if file-1 < 0:
                 leftsq = None
                 rightsq = current_state[file+1, rank+1].piece
@@ -82,9 +82,9 @@ class Pawn(Piece):
                 rightsq = current_state[file+1, rank+1].piece
             # Append Moves
             if leftsq is not None and leftsq.colour != self.colour:
-                moves.append((file-1, rank+1))
+                moves.append((file-1, rank+1, 'X'))
             if rightsq is not None and rightsq.colour != self.colour:
-                moves.append((file+1, rank+1))
+                moves.append((file+1, rank+1, 'X'))
             # En Passant
             if file_left in range(0, 8):
                 left = current_state[file_left, rank].piece
@@ -102,7 +102,7 @@ class Pawn(Piece):
                 # first move can move two spaces up
                 if self.first_move and current_state[file, rank-2].piece is None:
                     moves.append((file, rank-2, 'D'))
-            # Captures
+            # Capture
             if file-1 < 0:
                 leftsq = None
                 rightsq = current_state[file+1, rank-1].piece
@@ -114,9 +114,9 @@ class Pawn(Piece):
                 rightsq = current_state[file+1, rank-1].piece
             # Append moves
             if leftsq is not None and leftsq.colour != self.colour:
-                moves.append((file-1, rank-1))
+                moves.append((file-1, rank-1, 'X'))
             if rightsq is not None and rightsq.colour != self.colour:
-                moves.append((file+1, rank-1))
+                moves.append((file+1, rank-1, 'X'))
             # En Passant
             if file_left in range(0, 8):
                 left = current_state[file_left, rank].piece
@@ -183,7 +183,7 @@ class Rook(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -209,7 +209,7 @@ class Rook(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -235,7 +235,7 @@ class Rook(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -260,7 +260,7 @@ class Rook(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -302,14 +302,14 @@ class Knight(Piece):
                     moves.append((sel_file, rank_left))
                 # capture
                 elif leftsq.piece.colour != self.colour:
-                    moves.append((sel_file, rank_left))
+                    moves.append((sel_file, rank_left, 'X'))
             if sel_file in range(0, 8) and rank_right in range(0, 8):
                 rightsq = current_state[sel_file, rank_right]
                 if rightsq.piece is None:
                     moves.append((sel_file, rank_right))
                 # capture
                 elif rightsq.piece.colour != self.colour:
-                    moves.append((sel_file, rank_right))
+                    moves.append((sel_file, rank_right, 'X'))
         return moves
 
 
@@ -361,7 +361,7 @@ class Bishop(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -387,7 +387,7 @@ class Bishop(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -413,7 +413,7 @@ class Bishop(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -440,7 +440,7 @@ class Bishop(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -501,7 +501,7 @@ class Queen(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -527,7 +527,7 @@ class Queen(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -553,7 +553,7 @@ class Queen(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -579,7 +579,7 @@ class Queen(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -606,7 +606,7 @@ class Queen(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -632,7 +632,7 @@ class Queen(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -658,7 +658,7 @@ class Queen(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -684,7 +684,7 @@ class Queen(Piece):
                         sides += 1
                         continue
                     else: # Capture
-                        moves.append((sel_file, sel_rank))
+                        moves.append((sel_file, sel_rank, 'X'))
                         distance = 1
                         sides += 1
                         continue
@@ -773,6 +773,7 @@ class King(Piece):
                 selectedsq = current_state[sel_file, sel_rank]
                 if selectedsq.piece is None:
                     moves.append((sel_file, sel_rank))
+                # Capture
                 elif selectedsq.piece.colour != self.colour:
-                    moves.append((sel_file, sel_rank))
+                    moves.append((sel_file, sel_rank, 'X'))
         return moves
