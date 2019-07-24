@@ -49,7 +49,7 @@ class State:
         bpieces: all black pieces
         """
         self.squares = defaultdict()
-        self.last_move = Square()
+        self.last_move = ()
         self.enpassant = False
         self.status = ''
         self.wking = None
@@ -89,8 +89,6 @@ class State:
             if current_piece is not None and player != current_piece.colour:
                 if current_piece.piece != 'P':
                     atks = current_piece.valid_moves(self)
-                    # if square.position in atks:
-                    #     atkby.append(current_piece.piece)
                 else:
                     if player == 'w':
                         atks = ((current_piece.file+1, current_piece.rank+1), (current_piece.file-1, current_piece.rank+1))
@@ -325,8 +323,6 @@ class Board:
                     placed += 1
         pygame.display.update()
         self.state.squares = squares
-        self.state.last_move = Square()
-        self.state.enpassant = False
         self.enpass_capture = False
         self.castle = False
 
@@ -451,6 +447,7 @@ class Board:
 
                     self.castle = False
                     newstate.status = ''
+                    newstate.enpassant = False
                     return newstate
                 npiece.move_to(newfile, newrank)
                 try:
@@ -461,6 +458,7 @@ class Board:
                 newstate.squares[newfile, newrank].piece = npiece
                 del newstate.squares[file, rank].piece
                 newstate.squares[file, rank].piece = None
+                newstate.enpassant = False
                 if status == 'X':
                     newstate.status = 'x'
                 else:

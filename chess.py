@@ -25,6 +25,23 @@ def text_objects(text, font):
     return textsurface, textsurface.get_rect()
 
 
+def undo_move(states, movelist, board):
+    """Undo the last move"""
+    if board.turn_num < 1:
+        print('No more moves to undo')
+        return
+    curr, new = states[board.turn_num].last_move
+    del states[board.turn_num]
+    del movelist[board.turn_num-1]
+    board.turn_num -= 1
+    square1 = states[board.turn_num].squares[curr.position]
+    square2 = states[board.turn_num].squares[new.position]
+    pygame.draw.rect(GAME_DISPLAY, square2.sqrcolour, [square2.coord[0], square2.coord[1], CELLSIZE, CELLSIZE])
+    pygame.draw.rect(GAME_DISPLAY, square1.sqrcolour, [square1.coord[0], square1.coord[1], CELLSIZE, CELLSIZE])
+    image = pygame.image.load(square1.piece.img)
+    GAME_DISPLAY.blit(image, square1.coord)
+
+
 def quit_game():
     """Quits the game"""
     pygame.quit()
@@ -33,30 +50,34 @@ def quit_game():
 
 def reset_(xposition, yposition, buttonx, buttony, action=None):
     """
-    Function that deals with rendering hovering buttons
+    Function that deals with rendering reset button
     """
-    #undo = text_objects('Undo', buttonfont)
-    #quit_ = text_objects('Quit', buttonfont)
-
     if (buttonx+175) > xposition > buttonx and (buttony+60) > yposition > buttony:
         pygame.draw.rect(GAME_DISPLAY, PEACH, [buttonx, buttony, 175, 60])
         GAME_DISPLAY.blit(RESET[0], RESET[1])
         if action:
             print('Starting new game...')
             action()
-    #elif (buttonx+175) > xposition > buttonx and (buttony+145) > yposition > (buttony+85):
-    #    pygame.draw.rect(GAME_DISPLAY, BRIGHT_DRK_WOOD, [buttonx, buttony+85, 175, 60])
-    #elif (buttonx+175) > xposition > buttonx and (buttony+230) > yposition > (buttony+170):
-    #    pygame.draw.rect(GAME_DISPLAY, BRIGHT_DRK_WOOD, [buttonx, buttony+170, 175, 60])
     else:
         pygame.draw.rect(GAME_DISPLAY, DARK_WOOD, [buttonx, buttony, 175, 60])
         GAME_DISPLAY.blit(RESET[0], RESET[1])
-    #    pygame.draw.rect(GAME_DISPLAY, DARK_WOOD, [buttonx, buttony+85, 175, 60])
-    #    pygame.draw.rect(GAME_DISPLAY, DARK_WOOD, [buttonx, buttony+170, 175, 60])
+
+
+def undo_(xposition, yposition, buttonx, buttony, states=None, movelist=None, board=None, action=None):
+    """Function that deals with rendering undo button"""
+    if (buttonx+175) > xposition > buttonx and (buttony+60) > yposition > buttony:
+        pygame.draw.rect(GAME_DISPLAY, PEACH, [buttonx, buttony, 175, 60])
+        GAME_DISPLAY.blit(UNDO[0], UNDO[1])
+        if action:
+            pass
+            #action(states, movelist, board)
+    else:
+        pygame.draw.rect(GAME_DISPLAY, DARK_WOOD, [buttonx, buttony, 175, 60])
+        GAME_DISPLAY.blit(UNDO[0], UNDO[1])
 
 
 def quit_(xposition, yposition, buttonx, buttony, action=None):
-    """Function that deals with rendering quit buttons"""
+    """Function that deals with rendering quit button"""
     if (buttonx+175) > xposition > buttonx and (buttony+60) > yposition > buttony:
         pygame.draw.rect(GAME_DISPLAY, PEACH, [buttonx, buttony, 175, 60])
         GAME_DISPLAY.blit(QUIT[0], QUIT[1])
@@ -68,10 +89,12 @@ def quit_(xposition, yposition, buttonx, buttony, action=None):
         GAME_DISPLAY.blit(QUIT[0], QUIT[1])
 
 
-def lit_square(xposition, yposition, current_piece, state, player, clicked=False):
+def lit_square(xposition, yposition, current_piece, state, clicked=False):
     """Function that highlights square when hovering over it"""
     if current_piece is not None:
         moves = current_piece.valid_moves(state)
+    else:
+        moves = []
 
     for square in state.squares:
         sqr = state.squares[square]
@@ -125,6 +148,22 @@ def move_notation(state, piece, square, checkmate, stalemate, status):
     else:
         movestr = piece.piece + state.status + notation(square.position).strip()
     return movestr
+
+
+def render_buttons(buttonx, buttony):
+    """This function renders the buttons"""
+    # Reset button
+    pygame.draw.rect(GAME_DISPLAY, DARK_WOOD, [buttonx, buttony, 175, 60])
+    RESET[1].center = ((buttonx+(175/2)), (buttony+(60/2)))
+    GAME_DISPLAY.blit(RESET[0], RESET[1])
+    # Undo Button
+    pygame.draw.rect(GAME_DISPLAY, DARK_WOOD, [buttonx, (buttony + 85), 175, 60])
+    UNDO[1].center = ((buttonx+(175/2)), ((buttony + 85)+(60/2)))
+    GAME_DISPLAY.blit(UNDO[0], UNDO[1])
+    # Quit Button
+    pygame.draw.rect(GAME_DISPLAY, DARK_WOOD, [buttonx, (buttony + 170), 175, 60])
+    QUIT[1].center = ((buttonx+(175/2)), ((buttony + 170)+(60/2)))
+    GAME_DISPLAY.blit(QUIT[0], QUIT[1])
 
 
 def render_move(file, rank, current_square, new_state, board):
@@ -188,29 +227,22 @@ def render_move(file, rank, current_square, new_state, board):
     GAME_DISPLAY.blit(image, (CELLSIZE*file+BUFFER, CELLSIZE*rank+BUFFER))
 
 
-def gameloop():
+def start_game():
     """Main game function"""
     # label the axis
     axis_file = (CELLSIZE/2) + 20
     axis_rank = (BUFFER + BOARDSIZE*CELLSIZE) - (CELLSIZE/2)
     for order in range(0, BOARDSIZE):
-        FONT.render_to(GAME_DISPLAY, (axis_file, 545), FILE_NAME[order], WHITE)
-        FONT.render_to(GAME_DISPLAY, (9, axis_rank), RANK_NAME[order], WHITE)
+        LABELFONT.render_to(GAME_DISPLAY, (axis_file, 545), FILE_NAME[order], WHITE)
+        LABELFONT.render_to(GAME_DISPLAY, (9, axis_rank), RANK_NAME[order], WHITE)
         axis_file += CELLSIZE
         axis_rank -= CELLSIZE
 
     # Render buttons
+    # Render buttons
     buttonx = (BOARDSIZE*CELLSIZE)+(2*BUFFER)
     buttony = (CELLSIZE*2) + BUFFER + 13
-    # Reset button
-    pygame.draw.rect(GAME_DISPLAY, DARK_WOOD, [buttonx, buttony, 175, 60])
-    RESET[1].center = ((buttonx+(175/2)), (buttony+(60/2)))
-    GAME_DISPLAY.blit(RESET[0], RESET[1])
-    #pygame.draw.rect(GAME_DISPLAY, DARK_WOOD, [buttonx, (buttony + 85), 175, 60])
-    # Quit button
-    pygame.draw.rect(GAME_DISPLAY, DARK_WOOD, [buttonx, (buttony + 170), 175, 60])
-    QUIT[1].center = ((buttonx+(175/2)), ((buttony + 170)+(60/2)))
-    GAME_DISPLAY.blit(QUIT[0], QUIT[1])
+    render_buttons(buttonx, buttony)
 
     # Initializes and draws chess board
     board = Board(GAME_DISPLAY, CELLSIZE)
@@ -218,13 +250,14 @@ def gameloop():
 
     # game loop
     game_exit = False
-    states = []
-    allmoves = []
     # current state, current square and current piece
     curr_state = board.state
     curr_sq = None
     curr_piece = None
-    # last move made on the board legal moves
+    # all states and all moves
+    states = []
+    allmoves = []
+    states.append(curr_state)
     # check mate variables
     checkmate = False
     stalemate = False
@@ -248,7 +281,8 @@ def gameloop():
                 # Mouse click
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     # Buttons: reset and quit buttons
-                    reset_(x_pos, y_pos, buttonx, buttony, gameloop)
+                    reset_(x_pos, y_pos, buttonx, buttony, start_game)
+                    undo_(x_pos, y_pos, buttonx, (buttony+85), states, allmoves, board, undo_move)
                     quit_(x_pos, y_pos, buttonx, (buttony+170), quit_game)
 
                     # Mouse out of bounds
@@ -274,13 +308,13 @@ def gameloop():
 
                                 # Increment turn counter
                                 board.turn_num += 1
-                                # set the last move
-                                pos = new_state.last_move.position
                                 
                                 # Sets variable so en passant capture only availble for one turn
                                 try:
+                                    # set the last move
+                                    pos = new_state.last_move[1].position
                                     new_state.squares[pos].piece.double = False
-                                except (AttributeError, KeyError):
+                                except (AttributeError, KeyError, IndexError):
                                     pass
                                 
                                 # check if enemy king is in check
@@ -317,9 +351,10 @@ def gameloop():
                                 # record move to move list
                                 allmoves.append(move_notation(new_state, new_piece, new_sq, checkmate, stalemate, status))
 
-                                new_state.last_move = new_sq
+                                new_state.last_move = (curr_sq, new_sq)
                                 # save new state
                                 states.append(new_state)
+                                del curr_state
                                 curr_state = new_state
 
                                 # Update the turn counter
@@ -328,10 +363,10 @@ def gameloop():
                                 elif turn == 'b':
                                     turn = 'w'
 
-                                print(allmoves)
                                 if DEBUG:
                                     if status:
                                         print('Enemy King is in check')
+                                print(allmoves, '\n')
                         else:
                             piece_clicked = True
                     else:       #click
@@ -370,8 +405,11 @@ def gameloop():
                                     print('Your king is under check!')
 
                                 # show what the last move was
-                                if curr_state.last_move.piece is not None:
-                                    print('The last move was', curr_state.last_move.piece.piece, 'on', notation(curr_state.last_move.position))
+                                try:
+                                    if curr_state.last_move[1].piece is not None:
+                                        print('The last move was', curr_state.last_move[1].piece.piece, 'on', notation(curr_state.last_move[1].position))
+                                except IndexError:
+                                    print('No last move')
 
                                 # Print Current piece on square
                                 print('Current piece:', curr_piece.piece)
@@ -389,9 +427,9 @@ def gameloop():
                                 print('attacking:', sentence2)
                             ########################################################################
                 if piece_clicked:
-                    lit_square(x_pos, y_pos, curr_piece, curr_state, turn, True)
+                    lit_square(x_pos, y_pos, curr_piece, curr_state, True)
                 else:
-                    lit_square(x_pos, y_pos, curr_piece, curr_state, turn)
+                    lit_square(x_pos, y_pos, curr_piece, curr_state,)
             else:
                 # mouse position
                 (x_pos, y_pos) = pygame.mouse.get_pos()
@@ -399,11 +437,13 @@ def gameloop():
                 # Mouse click
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     # Buttons: reset and quit
-                    reset_(x_pos, y_pos, buttonx, buttony, gameloop)
+                    reset_(x_pos, y_pos, buttonx, buttony, start_game)
+                    undo_(x_pos, y_pos, buttonx, (buttony+85), states, allmoves, board, undo_move)
                     quit_(x_pos, y_pos, buttonx, (buttony+170), quit_game)
                 lit_check(checkmate_king, curr_state)
             # Buttons
             reset_(x_pos, y_pos, buttonx, buttony)
+            undo_(x_pos, y_pos, buttonx, (buttony+85))
             quit_(x_pos, y_pos, buttonx, (buttony+170))
         pygame.display.update()
     # closes pygame
@@ -414,10 +454,10 @@ def gameloop():
 pygame.init()
 
 # DEBUG VARIABLE
-DEBUG = False
+DEBUG = True
 
-# load FONT
-FONT = pygame.freetype.Font('/home/johnx/Projects/chess/font/OpenSans-Semibold.ttf', 15)
+# load font
+LABELFONT = pygame.freetype.Font('/home/johnx/Projects/chess/font/OpenSans-Semibold.ttf', 15)
 BUTTONFONT = pygame.font.Font('/home/johnx/Projects/chess/font/OpenSans-Semibold.ttf', 20)
 
 # set colours
@@ -448,6 +488,7 @@ RANK_NAME = ['1', '2', '3', '4', '5', '6', '7', '8']
 
 # Button variables
 RESET = text_objects('New Game', BUTTONFONT)
+UNDO = text_objects('coming soon', BUTTONFONT)
 QUIT = text_objects('Quit', BUTTONFONT)
 
 # Initiate players and turn variable
@@ -459,5 +500,5 @@ PLAYER_2 = Player('b')
 GAME_DISPLAY = pygame.display.set_mode((DIMX, DIMY))
 pygame.display.set_caption('Chess')
 
-# Start game loop
-gameloop()
+# Start game
+start_game()
