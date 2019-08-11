@@ -2,9 +2,11 @@
 The main file:
 Handles starting the game
 """
+import math
 import pygame
 import pygame.freetype
 from board import Board
+from search import ab_negamax
 from player import Player
 
 def notation(position):
@@ -300,7 +302,7 @@ def start_game():
                             # Generate set of legal moves
                             legalmoves = curr_state.legal_moves(curr_piece.colour)
                             # Only make move if intended move is in set of legal moves
-                            if (file, rank) in legalmoves[curr_sq.position]:
+                            if (file, rank) in legalmoves[curr_sq.position][0]:
                                 new_state = board.move(curr_piece, file, rank, curr_state)
                                 new_sq = new_state.squares[file, rank]
                                 new_piece = new_sq.piece
@@ -366,7 +368,6 @@ def start_game():
                                 if DEBUG:
                                     if status:
                                         print('Enemy King is in check')
-                                print(allmoves, '\n')
                         else:
                             piece_clicked = True
                     else:       #click
@@ -388,6 +389,7 @@ def start_game():
                             if curr_piece.colour != turn:
                                 piece_clicked = False
                                 continue
+
                             ########################################################################
                             if DEBUG:
                                 # print location of current kings
@@ -426,6 +428,15 @@ def start_game():
                                     sentence2 += notation(move)
                                 print('attacking:', sentence2)
                             ########################################################################
+                            if SCORE:
+                                #thescore = score_all(curr_state)
+                                #sort = [(key, thescore[key]) for key in sorted(thescore, key=thescore.get, reverse=True)]
+                                #sort = sorted(thescore.items(), key=lambda x: x[1], reverse=True)
+                                #for key, value in sort:
+                                #    print(key[0], notation(key[1]), ':', value)
+                                #print('\n')
+                                bestscr, bestmove = ab_negamax(curr_state, turn, -100000, 100000, 2)
+                                print(bestmove, bestscr)
                 if piece_clicked:
                     lit_square(x_pos, y_pos, curr_piece, curr_state, True)
                 else:
@@ -450,11 +461,162 @@ def start_game():
     pygame.quit()
     quit()
 
+
+def cpu_plays():
+    """Function that lets two CPUs play against each other"""
+    # label the axis
+    axis_file = (CELLSIZE/2) + 20
+    axis_rank = (BUFFER + BOARDSIZE*CELLSIZE) - (CELLSIZE/2)
+    for order in range(0, BOARDSIZE):
+        LABELFONT.render_to(GAME_DISPLAY, (axis_file, 545), FILE_NAME[order], WHITE)
+        LABELFONT.render_to(GAME_DISPLAY, (9, axis_rank), RANK_NAME[order], WHITE)
+        axis_file += CELLSIZE
+        axis_rank -= CELLSIZE
+
+    # Render buttons
+    # Render buttons
+    buttonx = (BOARDSIZE*CELLSIZE)+(2*BUFFER)
+    buttony = (CELLSIZE*2) + BUFFER + 13
+    render_buttons(buttonx, buttony)
+
+    # Initializes and draws chess board
+    board = Board(GAME_DISPLAY, CELLSIZE)
+    board.set_board()
+
+    # game loop
+    game_exit = False
+    # current state, current square and current piece
+    curr_state = board.state
+    curr_sq = None
+    curr_piece = None
+    # all states and all moves
+    states = []
+    allmoves = []
+    states.append(curr_state)
+    # check mate variables
+    checkmate = False
+    stalemate = False
+    checkmate_king = None
+    # piece clicked and turn variables
+    turn = 'w'
+
+    while not game_exit:
+        # quits the game when exit is pressed
+        for event in pygame.event.get():
+            # mouse position
+            (x_pos, y_pos) = pygame.mouse.get_pos()
+
+            # Exit game
+            if event.type == pygame.QUIT:
+                print('Quitting game...')
+                game_exit = True
+            # Mouse click
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                # Buttons: reset and quit buttons
+                reset_(x_pos, y_pos, buttonx, buttony, start_game)
+                undo_(x_pos, y_pos, buttonx, (buttony+85), states, allmoves, board, undo_move)
+                quit_(x_pos, y_pos, buttonx, (buttony+170), quit_game)
+
+            if not checkmate and not stalemate:
+                # Calculate best move
+                best_move = ab_negamax(curr_state, turn, -math.inf, math.inf, 2)
+
+                # perform move
+                curr_sq = curr_state.squares[best_move[1][0]]
+                curr_piece = curr_state.squares[best_move[1][0]].piece
+                file = best_move[1][1][0][0]
+                rank = best_move[1][1][0][1]
+                print('Piece', curr_piece.piece, 'moved to', notation((file, rank)))
+                new_state = board.move(curr_piece, file, rank, curr_state)
+                new_sq = new_state.squares[file, rank]
+                new_piece = new_sq.piece
+                render_move(file, rank, curr_sq, new_state, board)
+
+                # Increment turn counter
+                board.turn_num += 1
+
+                # Sets variable so en passant capture only availble for one turn
+                try:
+                    # set the last move
+                    pos = new_state.last_move[1].position
+                    new_state.squares[pos].piece.double = False
+                except (AttributeError, KeyError, IndexError):
+                    pass
+
+                # check if enemy king is in check
+                status = new_state.checking(new_piece)
+                if status and new_piece.colour == 'w':
+                    new_state.bking.checked = True
+                    ismate = new_state.checkmate('b')
+                    if ismate:
+                        print('Black King is mated: WHITE WINS')
+                        checkmate = True
+                        checkmate_king = new_state.bking
+                elif status and new_piece.colour == 'b':
+                    new_state.wking.checked = True
+                    ismate = new_state.checkmate('w')
+                    if ismate:
+                        print('White King is mated: BLACK WINS')
+                        checkmate = True
+                        checkmate_king = new_state.wking
+                else:
+                    if new_piece.colour == 'w':
+                        new_state.bking.checked = False
+                        ismate = new_state.checkmate('b')
+                        if ismate:
+                            print('Stalemate')
+                            stalemate = True
+                            checkmate_king = new_state.bking
+                    elif new_piece.colour == 'b':
+                        new_state.wking.checked = False
+                        ismate = new_state.checkmate('w')
+                        if ismate:
+                            print('Stalemate')
+                            stalemate = True
+                            checkmate_king = new_state.wking
+                # record move to move list
+                allmoves.append(move_notation(new_state, new_piece, new_sq, checkmate, stalemate, status))
+
+                new_state.last_move = (curr_sq, new_sq)
+                # save new state
+                states.append(new_state)
+                del curr_state
+                curr_state = new_state
+
+                # Update the turn counter
+                if turn == 'w':
+                    turn = 'b'
+                elif turn == 'b':
+                    turn = 'w'
+
+            else:
+                # mouse position
+                (x_pos, y_pos) = pygame.mouse.get_pos()
+
+                # Mouse click
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    # Buttons: reset and quit
+                    reset_(x_pos, y_pos, buttonx, buttony, start_game)
+                    undo_(x_pos, y_pos, buttonx, (buttony+85), states, allmoves, board, undo_move)
+                    quit_(x_pos, y_pos, buttonx, (buttony+170), quit_game)
+                lit_check(checkmate_king, curr_state)
+            # Buttons
+            reset_(x_pos, y_pos, buttonx, buttony)
+            undo_(x_pos, y_pos, buttonx, (buttony+85))
+            quit_(x_pos, y_pos, buttonx, (buttony+170))
+        pygame.display.update()
+    # closes pygame
+    pygame.quit()
+    quit()
+
+
+
 # initiate pygame
 pygame.init()
 
 # DEBUG VARIABLE
-DEBUG = True
+DEBUG = False
+SCORE = True
 
 # load font
 LABELFONT = pygame.freetype.Font('/home/johnx/Projects/chess/font/OpenSans-Semibold.ttf', 15)
@@ -501,4 +663,5 @@ GAME_DISPLAY = pygame.display.set_mode((DIMX, DIMY))
 pygame.display.set_caption('Chess')
 
 # Start game
-start_game()
+#start_game()
+cpu_plays()

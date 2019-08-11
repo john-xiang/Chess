@@ -167,6 +167,24 @@ class State:
         return False
 
 
+    def make_move(self, piece, file, rank):
+        """
+        This function returns the state after a move is made
+        Currently will only make the move but not update variables
+        """
+        newstate = copy.deepcopy(self)
+        newpce = newstate.squares[piece].piece
+        # remove piece on new square
+        del newstate.squares[file, rank].piece
+        newpce.move_to(file, rank)
+        newstate.squares[file, rank].piece = newpce
+        # remove piece from old square
+        del newstate.squares[piece].piece
+        newstate.squares[piece].piece = None
+
+        return newstate
+
+
     def legal_moves(self, player):
         """Function finds all legal moves for player"""
         all_moves = defaultdict(list)
@@ -195,7 +213,7 @@ class State:
                             if atks:
                                 continue
                     if self.try_move(sqr.piece, move[0], move[1]):
-                        all_moves[sqr.position].append((move[0], move[1]))
+                        all_moves[sqr.position].append(((move[0], move[1]), status))
         return all_moves
 
 
@@ -203,7 +221,9 @@ class State:
         """
         Helper function for finding legal moves
 
-        This function will try the move and if it leaves own king in check then not allowed
+        This function will first try the move
+        and then it checks if the move results in own king in check
+        if it leaves own king in check then the move is not allowed
         """
         try_state = copy.deepcopy(self)
         try_piece = try_state.squares[piece.file, piece.rank].piece
@@ -229,7 +249,7 @@ class Board:
     """
     Board class initiates and renders board
     """
-    def __init__(self, display, cellsize):
+    def __init__(self, display=None, cellsize=None):
         """
         init method that instantiates board object
         Attributes:
@@ -247,6 +267,68 @@ class Board:
         self.enpass_capture = False
         self.castle = False
 
+
+    def iboard(self):
+        """
+        Sets up initial state of the board
+        """
+        board_size = 8
+        lines = [0, 1, 6, 7]
+        placed = 0
+        order = ['rookb', 'pawnb', 'pawnw', 'rookw',
+                 'knightb', 'pawnb', 'pawnw', 'knightw',
+                 'bishopb', 'pawnb', 'pawnw', 'bishopw',
+                 'queenb', 'pawnb', 'pawnw', 'queenw',
+                 'kingb', 'pawnb', 'pawnw', 'kingw',
+                 'bishopb', 'pawnb', 'pawnw', 'bishopw',
+                 'knightb', 'pawnb', 'pawnw', 'knightw',
+                 'rookb', 'pawnb', 'pawnw', 'rookw']
+        switch = False
+        # intialize pieces onto board
+        for file in range(board_size):
+            switch = not switch
+            for rank in range(board_size):
+                if switch:
+                    # set property for the current square
+                    self.state.squares[file, rank] = Square('w', position=(file, rank))
+                    switch = False
+                elif not switch:
+                    # set property for current square
+                    self.state.squares[file, rank] = Square('b', position=(file, rank))
+                    switch = True
+                if rank in lines:
+                    current_piece = order[placed]
+                    # Initialize pieces
+                    if 'rookb' in current_piece:
+                        piece = Rook(file, rank, 'b')
+                    elif 'rookw' in current_piece:
+                        piece = Rook(file, rank, 'w')
+                    elif 'pawnb' in current_piece:
+                        piece = Pawn(file, rank, 'b')
+                    elif 'pawnw' in current_piece:
+                        piece = Pawn(file, rank, 'w')
+                    elif 'knightb' in current_piece:
+                        piece = Knight(file, rank, 'b')
+                    elif 'knightw' in current_piece:
+                        piece = Knight(file, rank, 'w')
+                    elif 'bishopb' in current_piece:
+                        piece = Bishop(file, rank, 'b')
+                    elif 'bishopw' in current_piece:
+                        piece = Bishop(file, rank, 'w')
+                    elif 'queenb' in current_piece:
+                        piece = Queen(file, rank, 'b')
+                    elif 'queenw' in current_piece:
+                        piece = Queen(file, rank, 'w')
+                    elif 'kingb' in current_piece:
+                        piece = King(file, rank, 'b')
+                        self.state.bking = piece
+                    elif 'kingw' in current_piece:
+                        piece = King(file, rank, 'w')
+                        self.state.wking = piece
+                    # Set piece for the current square
+                    self.state.squares[file, rank].piece = piece
+                    placed += 1
+        return self.state
 
     def set_board(self):
         """
@@ -278,13 +360,13 @@ class Board:
                     # draw square
                     pygame.draw.rect(self.display, white, [xfile, yrank, self.cellsize, self.cellsize])
                     # set property for the current square
-                    squares[file, rank] = Square('w', white, (file, rank), (xfile, yrank))
+                    squares[file, rank] = Square(colour='w', sqrcolour=white, position=(file, rank), coord=(xfile, yrank))
                     switch = False
                 elif not switch:
                     # draw square on display
                     pygame.draw.rect(self.display, black, [xfile, yrank, self.cellsize, self.cellsize])
                     # set property for current square
-                    squares[file, rank] = Square('b', black, (file, rank), (xfile, yrank))
+                    squares[file, rank] = Square(colour='b', sqrcolour=black, position=(file, rank), coord=(xfile, yrank))
                     switch = True
                 if rank in lines:
                     current_piece = order[placed]
