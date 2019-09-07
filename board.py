@@ -45,8 +45,6 @@ class State:
         enpassant: tells the board whether enpassant capture is available
         wking: location of white king
         bking: location of black king
-        wpieces: all white pieces
-        bpieces: all black pieces
         """
         self.squares = defaultdict()
         self.last_move = ()
@@ -167,10 +165,9 @@ class State:
         return False
 
 
-    def make_move(self, piece, file, rank):
+    def make_move(self, piece, file, rank, status):
         """
         This function returns the state after a move is made
-        Currently will only make the move but not update variables
         """
         newstate = copy.deepcopy(self)
         newpce = newstate.squares[piece].piece
@@ -181,7 +178,26 @@ class State:
         # remove piece from old square
         del newstate.squares[piece].piece
         newstate.squares[piece].piece = None
-
+        # Set variables
+        try:
+            newpce.first_move = False
+        except AttributeError:
+            pass
+        try:
+            newpce.double = False
+        except AttributeError:
+            pass
+        # Set enpassant variable
+        if status == 'D':
+            newstate.enpassant = True
+            newpce.double = True
+        else:
+            newstate.enpassant = False
+        # Update position of kings
+        if newpce.piece == 'K' and newpce.colour == 'w':
+            newstate.wking = newpce
+        elif newpce.piece == 'K' and newpce.colour == 'b':
+            newstate.bking = newpce
         return newstate
 
 

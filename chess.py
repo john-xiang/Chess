@@ -501,109 +501,88 @@ def cpu_plays():
     turn = 'w'
 
     while not game_exit:
-        # quits the game when exit is pressed
-        for event in pygame.event.get():
+        if not checkmate and not stalemate:
+            # Calculate best move
+            best_move = ab_negamax(curr_state, turn, -math.inf, math.inf, 2)
+
+            # perform move
+            curr_sq = curr_state.squares[best_move[1][0]]
+            curr_piece = curr_state.squares[best_move[1][0]].piece
+            file = best_move[1][1][0][0]
+            rank = best_move[1][1][0][1]
+            print(board.turn_num, '- Piece', (turn, curr_piece.piece), 'moved to', notation((file, rank)))
+            new_state = board.move(curr_piece, file, rank, curr_state)
+            new_sq = new_state.squares[file, rank]
+            new_piece = new_sq.piece
+            render_move(file, rank, curr_sq, new_state, board)
+
+            # Increment turn counter
+            board.turn_num += 1
+
+            # Sets variable so en passant capture only availble for one turn
+            try:
+                # set the last move
+                pos = new_state.last_move[1].position
+                new_state.squares[pos].piece.double = False
+            except (AttributeError, KeyError, IndexError):
+                pass
+
+            # check if enemy king is in check
+            status = new_state.checking(new_piece)
+            if status and new_piece.colour == 'w':
+                new_state.bking.checked = True
+                ismate = new_state.checkmate('b')
+                if ismate:
+                    print('Black King is mated: WHITE WINS')
+                    checkmate = True
+                    checkmate_king = new_state.bking
+            elif status and new_piece.colour == 'b':
+                new_state.wking.checked = True
+                ismate = new_state.checkmate('w')
+                if ismate:
+                    print('White King is mated: BLACK WINS')
+                    checkmate = True
+                    checkmate_king = new_state.wking
+            else:
+                if new_piece.colour == 'w':
+                    new_state.bking.checked = False
+                    ismate = new_state.checkmate('b')
+                    if ismate:
+                        print('Stalemate')
+                        stalemate = True
+                        checkmate_king = new_state.bking
+                elif new_piece.colour == 'b':
+                    new_state.wking.checked = False
+                    ismate = new_state.checkmate('w')
+                    if ismate:
+                        print('Stalemate')
+                        stalemate = True
+                        checkmate_king = new_state.wking
+            # record move to move list
+            allmoves.append(move_notation(new_state, new_piece, new_sq, checkmate, stalemate, status))
+
+            new_state.last_move = (curr_sq, new_sq)
+            # save new state
+            states.append(new_state)
+            del curr_state
+            curr_state = new_state
+
+            # Update the turn counter
+            if turn == 'w':
+                turn = 'b'
+            elif turn == 'b':
+                turn = 'w'
+        else:
             # mouse position
             (x_pos, y_pos) = pygame.mouse.get_pos()
 
-            # Exit game
-            if event.type == pygame.QUIT:
-                print('Quitting game...')
-                game_exit = True
             # Mouse click
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                # Buttons: reset and quit buttons
+                # Buttons: reset and quit
                 reset_(x_pos, y_pos, buttonx, buttony, start_game)
                 undo_(x_pos, y_pos, buttonx, (buttony+85), states, allmoves, board, undo_move)
                 quit_(x_pos, y_pos, buttonx, (buttony+170), quit_game)
-
-            if not checkmate and not stalemate:
-                # Calculate best move
-                best_move = ab_negamax(curr_state, turn, -math.inf, math.inf, 2)
-
-                # perform move
-                curr_sq = curr_state.squares[best_move[1][0]]
-                curr_piece = curr_state.squares[best_move[1][0]].piece
-                file = best_move[1][1][0][0]
-                rank = best_move[1][1][0][1]
-                print('Piece', curr_piece.piece, 'moved to', notation((file, rank)))
-                new_state = board.move(curr_piece, file, rank, curr_state)
-                new_sq = new_state.squares[file, rank]
-                new_piece = new_sq.piece
-                render_move(file, rank, curr_sq, new_state, board)
-
-                # Increment turn counter
-                board.turn_num += 1
-
-                # Sets variable so en passant capture only availble for one turn
-                try:
-                    # set the last move
-                    pos = new_state.last_move[1].position
-                    new_state.squares[pos].piece.double = False
-                except (AttributeError, KeyError, IndexError):
-                    pass
-
-                # check if enemy king is in check
-                status = new_state.checking(new_piece)
-                if status and new_piece.colour == 'w':
-                    new_state.bking.checked = True
-                    ismate = new_state.checkmate('b')
-                    if ismate:
-                        print('Black King is mated: WHITE WINS')
-                        checkmate = True
-                        checkmate_king = new_state.bking
-                elif status and new_piece.colour == 'b':
-                    new_state.wking.checked = True
-                    ismate = new_state.checkmate('w')
-                    if ismate:
-                        print('White King is mated: BLACK WINS')
-                        checkmate = True
-                        checkmate_king = new_state.wking
-                else:
-                    if new_piece.colour == 'w':
-                        new_state.bking.checked = False
-                        ismate = new_state.checkmate('b')
-                        if ismate:
-                            print('Stalemate')
-                            stalemate = True
-                            checkmate_king = new_state.bking
-                    elif new_piece.colour == 'b':
-                        new_state.wking.checked = False
-                        ismate = new_state.checkmate('w')
-                        if ismate:
-                            print('Stalemate')
-                            stalemate = True
-                            checkmate_king = new_state.wking
-                # record move to move list
-                allmoves.append(move_notation(new_state, new_piece, new_sq, checkmate, stalemate, status))
-
-                new_state.last_move = (curr_sq, new_sq)
-                # save new state
-                states.append(new_state)
-                del curr_state
-                curr_state = new_state
-
-                # Update the turn counter
-                if turn == 'w':
-                    turn = 'b'
-                elif turn == 'b':
-                    turn = 'w'
-
-            else:
-                # mouse position
-                (x_pos, y_pos) = pygame.mouse.get_pos()
-
-                # Mouse click
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    # Buttons: reset and quit
-                    reset_(x_pos, y_pos, buttonx, buttony, start_game)
-                    undo_(x_pos, y_pos, buttonx, (buttony+85), states, allmoves, board, undo_move)
-                    quit_(x_pos, y_pos, buttonx, (buttony+170), quit_game)
-                lit_check(checkmate_king, curr_state)
-            # Buttons
-            reset_(x_pos, y_pos, buttonx, buttony)
-            undo_(x_pos, y_pos, buttonx, (buttony+85))
-            quit_(x_pos, y_pos, buttonx, (buttony+170))
+            lit_check(checkmate_king, curr_state)
         pygame.display.update()
     # closes pygame
     pygame.quit()

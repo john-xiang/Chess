@@ -7,7 +7,6 @@ material score: the score for material
 mobility score: the score for how mobile a position is
 """
 from collections import defaultdict
-from board import Board
 
 
 def material_score(state):
@@ -15,7 +14,7 @@ def material_score(state):
     Function that calculates material score
     pieces are worth the following points
     pawn, knight, bishop, queen, rook, king:
-    1   , 3     , 4     , 13   , 8   , 1000
+    1   , 3     , 4     , 13   , 8   , 100000
     """
     pawn = 100
     knight = 400
@@ -53,7 +52,9 @@ def mobility_score(state):
     bmoves = state.legal_moves('b')
     movable_wpieces = len(wmoves)
     movable_bpieces = len(bmoves)
-    if movable_bpieces == 0 or movable_wpieces == 0:
+    if movable_bpieces == 0:
+        return 10
+    elif movable_wpieces == 0:
         return 0
     num_wmoves = 0
     num_bmoves = 0
@@ -69,16 +70,18 @@ def mobility_score(state):
     return scr
 
 
-def score(state):
+def score(state, player):
     """
     Scoring function
     """
-    mscore = material_score(state)
-    mobscore = mobility_score(state)
+    matscore = material_score(state)
+    #mobscore = mobility_score(state)
+    mobscore = 0
 
-    scr = mscore + mobscore #+...
-
-    return scr
+    scr = (0.8*matscore) + (0.2*mobscore) #+...
+    if player == 'w':
+        return scr
+    return -scr
 
 
 def score_all(state, player):
@@ -88,7 +91,6 @@ def score_all(state, player):
     for piece in moves:
         pce = state.squares[piece].piece
         for move in moves[piece]:
-            newstate = state.make_move(piece, move[0][0], move[0][1])
-            scores[pce.piece, move] = score(newstate)
+            newstate = state.make_move(piece, move[0][0], move[0][1], move[1])
+            scores[pce.piece, move] = score(newstate, player)
     return scores
-

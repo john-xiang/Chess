@@ -19,6 +19,7 @@ class Piece(ABC):
         self.rank = rank
         self.colour = colour
         self.piece = piece
+        self.pstable = [[] for i in range(8)]
 
     def move_to(self, new_file, new_rank):
         """Method that changes the file and rank of a piece object"""
@@ -45,8 +46,24 @@ class Pawn(Piece):
         self.piece = 'P'
         if colour == 'b':
             self.img = '/home/johnx/Projects/chess/png/pawnb.png'
+            self.pstable[0] = [0, 5, 5, 0, 5, 10, 50, 50]
+            self.pstable[1] = [0, 10, -5, 0, 5, 10, 50, 50]
+            self.pstable[2] = [0, 10, -10, 0, 10, 20, 50, 50]
+            self.pstable[3] = [0, -20, 0, 20, 25, 30, 50, 50]
+            self.pstable[4] = [0, -20, 0, 20, 25, 30, 50, 50]
+            self.pstable[5] = [0, 10, -10, 0, 10, 20, 50, 50]
+            self.pstable[6] = [0, 10, -5, 0, 5, 10, 50, 50]
+            self.pstable[7] = [0, 5, 5, 0, 5, 10, 50, 50]
         elif colour == 'w':
             self.img = '/home/johnx/Projects/chess/png/pawnw.png'
+            self.pstable[0] = [50, 50, 10, 5, 0, 5, 5, 0]
+            self.pstable[1] = [50, 50, 10, 5, 0, -5, 10, 0]
+            self.pstable[2] = [50, 50, 20, 10, 0, -10, 10, 0]
+            self.pstable[3] = [50, 50, 30, 25, 20, 0, -20, 0]
+            self.pstable[4] = [50, 50, 30, 25, 20, 0, -20, 0]
+            self.pstable[5] = [50, 50, 20, 10, 0, -10, 10, 0]
+            self.pstable[6] = [50, 50, 10, 5, 0, -5, 10, 0]
+            self.pstable[7] = [50, 50, 10, 5, 0, 5, 5, 0]
         self.first_move = True
         self.double = False
 
@@ -142,8 +159,24 @@ class Rook(Piece):
         self.piece = 'R'
         if colour == 'b':
             self.img = '/home/johnx/Projects/chess/png/rookb.png'
+            self.pstable[0] = [0, -5, -5, -5, -5, -5, -5, 0]
+            self.pstable[1] = [0, 0, 0, 0, 0, 0, 10, 0]
+            self.pstable[2] = [0, 0, 0, 0, 0, 0, 10, 0]
+            self.pstable[3] = [5, 0, 0, 0, 0, 0, 10, 0]
+            self.pstable[4] = [5, 0, 0, 0, 0, 0, 10, 0]
+            self.pstable[5] = [0, 0, 0, 0, 0, 0, 10, 0]
+            self.pstable[6] = [0, 0, 0, 0, 0, 0, 10, 0]
+            self.pstable[7] = [0, -5, -5, -5, -5, -5, -5, 0]
         elif colour == 'w':
             self.img = '/home/johnx/Projects/chess/png/rookw.png'
+            self.pstable[0] = [0, 5, -5, -5, -5, -5, -5, 0]
+            self.pstable[1] = [0, 10, 0, 0, 0, 0, 0, 0]
+            self.pstable[2] = [0, 10, 0, 0, 0, 0, 0, 0]
+            self.pstable[3] = [0, 10, 0, 0, 0, 0, 0, 5]
+            self.pstable[4] = [0, 10, 0, 0, 0, 0, 0, 5]
+            self.pstable[5] = [0, 10, 0, 0, 0, 0, 0, 0]
+            self.pstable[6] = [0, 10, 0, 0, 0, 0, 0, 0]
+            self.pstable[7] = [0, 5, -5, -5, -5, -5, -5, 0]
         self.first_move = True
 
     def valid_moves(self, state):
@@ -279,8 +312,24 @@ class Knight(Piece):
         self.piece = 'N'
         if colour == 'b':
             self.img = '/home/johnx/Projects/chess/png/knightb.png'
+            self.pstable[0] = [-50, -40, -30, -30, -30, -30, -40, -50]
+            self.pstable[1] = [-40, -20, 5, 0, 5, 0, -20, -40]
+            self.pstable[2] = [-30, 0, 10, 15, 15, 10, 0, -30]
+            self.pstable[3] = [-30, 5, 15, 20, 20, 15, 0, -30]
+            self.pstable[4] = [-30, 5, 15, 20, 20, 15, 0, -30]
+            self.pstable[5] = [-30, 0, 10, 15, 15, 10, 0, -30]
+            self.pstable[6] = [-40, -20, 5, 0, 5, 0, -20, -40]
+            self.pstable[7] = [-50, -40, -30, -30, -30, -30, -40, -50]
         elif colour == 'w':
             self.img = '/home/johnx/Projects/chess/png/knightw.png'
+            self.pstable[0] = [-50, -40, -30, -30, -30, -30, -40, -50]
+            self.pstable[1] = [-40, -20, 0, 5, 0, 5, -20, -40]
+            self.pstable[2] = [-30, 0, 10, 15, 15, 10, 0, -30]
+            self.pstable[3] = [-30, 0, 15, 20, 20, 15, 5, -30]
+            self.pstable[4] = [-30, 0, 15, 20, 20, 15, 5, -30]
+            self.pstable[5] = [-30, 0, 10, 15, 15, 10, 0, -30]
+            self.pstable[6] = [-40, -20, 0, 5, 0, 5, -20, -40]
+            self.pstable[7] = [-50, -40, -30, -30, -30, -30, -40, -50]
 
     def valid_moves(self, state):
         """
@@ -325,8 +374,24 @@ class Bishop(Piece):
         self.piece = 'B'
         if colour == 'b':
             self.img = '/home/johnx/Projects/chess/png/bishopb.png'
+            self.pstable[0] = [-20, -10, -10, 10, -10, -10, -10, -20]
+            self.pstable[1] = [-10, 5, 10, 0, 5, 0, 0, -10]
+            self.pstable[2] = [-10, 0, 10, 10, 5, 5, 0, -10]
+            self.pstable[3] = [-10, 0, 10, 10, 10, 10, 0, -10]
+            self.pstable[4] = [-10, 0, 10, 10, 10, 10, 0, -10]
+            self.pstable[5] = [-10, 0, 10, 10, 5, 5, 0, -10]
+            self.pstable[6] = [-10, 5, 10, 0, 5, 0, 0, -10]
+            self.pstable[7] = [-20, -10, -10, -10, -10, -10, -10, -20]
         elif colour == 'w':
             self.img = '/home/johnx/Projects/chess/png/bishopw.png'
+            self.pstable[0] = [-20, -10, -10, -10, -10, -10, -10, -20]
+            self.pstable[1] = [-10, 0, 0, 5, 0, 10, 5, -10]
+            self.pstable[2] = [-10, 0, 5, 5, 10, 10, 0, -10]
+            self.pstable[3] = [-10, 0, 10, 10, 10, 10, 0, -10]
+            self.pstable[4] = [-10, 0, 10, 10, 10, 10, 0, -10]
+            self.pstable[5] = [-10, 0, 5, 5, 10, 10, 0, -10]
+            self.pstable[6] = [-10, 0, 0, 5, 0, 10, 5, -10]
+            self.pstable[7] = [-20, -10, -10, -10, -10, -10, -10, -20]
 
     def valid_moves(self, state):
         """Returns all valid moves for bishop piece"""
@@ -459,8 +524,24 @@ class Queen(Piece):
         self.piece = 'Q'
         if colour == 'b':
             self.img = '/home/johnx/Projects/chess/png/queenb.png'
+            self.pstable[0] = [-20, -10, -10, -5, -5, -10, -10, -20]
+            self.pstable[1] = [-10, 0, 0, 0, 0, 0, 0, -10]
+            self.pstable[2] = [-10, 0, 5, 5, 5, 5, 0, -10]
+            self.pstable[3] = [-5, 0, 5, 5, 5, 5, 0, -5]
+            self.pstable[4] = [-5, 0, 5, 5, 5, 5, 0, -5]
+            self.pstable[5] = [-10, 5, 5, 5, 5, 5, 0, -10]
+            self.pstable[6] = [-10, 0, 5, 0, 0, 0, 0, -10]
+            self.pstable[7] = [-20, -10, -10, 0, -5, -10, -10, -20]
         elif colour == 'w':
             self.img = '/home/johnx/Projects/chess/png/queenw.png'
+            self.pstable[0] = [-20, -10, -10, -5, 0, -10, -10, -20]
+            self.pstable[1] = [-10, 0, 0, 0, 0, 5, 0, -10]
+            self.pstable[2] = [-10, 0, 5, 5, 5, 5, 5, -10]
+            self.pstable[3] = [-5, 0, 5, 5, 5, 5, 0, -5]
+            self.pstable[4] = [-5, 0, 5, 5, 5, 5, 0, -5]
+            self.pstable[5] = [-10, 0, 5, 5, 5, 5, 0, -10]
+            self.pstable[6] = [-10, 0, 0, 0, 0, 0, 0, -10]
+            self.pstable[7] = [-20, -10, -10, -5, -5, -10, -10, -20]
 
     def valid_moves(self, state):
         """
@@ -705,8 +786,24 @@ class King(Piece):
         self.piece = 'K'
         if colour == 'b':
             self.img = '/home/johnx/Projects/chess/png/kingb.png'
+            self.pstable[0] = [20, 20, -10, -20, -30, -30, -30, -30]
+            self.pstable[1] = [30, 20, -20, -30, -40, -40, -40, -40]
+            self.pstable[2] = [10, 0, -20, -30, -40, -40, -40, -40]
+            self.pstable[3] = [0, 0, -20, -40, -50, -50, -50, -50]
+            self.pstable[4] = [0, 0, -20, -40, -50, -50, -50, -50]
+            self.pstable[5] = [10, 0, -20, -30, -40, -40, -40, -40]
+            self.pstable[6] = [30, 20, -20, -30, -40, -40, -40, -40]
+            self.pstable[7] = [20, 20, -10, -20, -30, -30, -30, -30]
         elif colour == 'w':
             self.img = '/home/johnx/Projects/chess/png/kingw.png'
+            self.pstable[0] = [-30, -30, -30, -30, -20, -10, 20, 20]
+            self.pstable[1] = [-40, -40, -40, -40, -30, -20, 20, 30]
+            self.pstable[2] = [-40, -40, -40, -40, -30, -20, 0, 10]
+            self.pstable[3] = [-50, -50, -50, -50, -40, -20, 0, 0]
+            self.pstable[4] = [-50, -50, -50, -50, -40, -20, 0, 0]
+            self.pstable[5] = [-40, -40, -40, -40, -30, -20, 0, 10]
+            self.pstable[6] = [-40, -40, -40, -40, -30, -20, 20, 30]
+            self.pstable[7] = [-30, -30, -30, -30, -20, -10, 20, 20]
         self.checked = False
         self.first_move = True
 
