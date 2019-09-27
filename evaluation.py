@@ -9,7 +9,7 @@ mobility score: the score for how mobile a position is
 from collections import defaultdict
 
 
-def material_score(state):
+def material_score(state, player):
     """
     Function that calculates material score
     pieces are worth the following points
@@ -22,6 +22,7 @@ def material_score(state):
     rook = 850
     queen = 1300
     king = 100000
+    pos_score = 0
 
     pieces = defaultdict(int)
     for square in state.squares:
@@ -31,11 +32,17 @@ def material_score(state):
             pieces[wpiece[0]] += 1
             if curr_piece.piece == 'B' and pieces[wpiece[0]] == 2:
                 pieces[wpiece[0]] += 50
+            # Calculate position score
+            if player == 'w':
+                pos_score += curr_piece.pstable[curr_piece.file][curr_piece.rank]
         elif curr_piece is not None and curr_piece.colour == 'b':
             bpiece = ('b'+curr_piece.piece, curr_piece)
             pieces[bpiece[0]] += 1
             if curr_piece.piece == 'B' and pieces[bpiece[0]] == 2:
                 pieces[bpiece[0]] += 50
+            # Calculate position score
+            if player == 'b':
+                pos_score += curr_piece.pstable[curr_piece.file][curr_piece.rank]
 
     mat_score = ((king*(pieces['wK']-pieces['bK']))\
                  +queen*(pieces['wQ']-pieces['bQ']))\
@@ -43,30 +50,23 @@ def material_score(state):
                  +(knight*(pieces['wN']-pieces['bN']))\
                  +(bishop*(pieces['wB']-pieces['bB']))\
                  +(pawn*(pieces['wP']-pieces['bP']))
-    return mat_score
+
+    return mat_score + pos_score
 
 
-def mobility_score(state):
-    """Function calculates mobility score"""
-    wmoves = state.legal_moves('w')
-    bmoves = state.legal_moves('b')
-    movable_wpieces = len(wmoves)
-    movable_bpieces = len(bmoves)
-    if movable_bpieces == 0:
-        return 10
-    elif movable_wpieces == 0:
-        return 0
-    num_wmoves = 0
-    num_bmoves = 0
+def mobility_score(state, player):
+    """
+    Function calculates mobility score
+    CURRENTLY TOO SLOW
+    """
+    moves = state.legal_moves(player)
+    moveable_pieces = len(moves)
+    num_moves = 0
 
-    for pieces in wmoves:
-        num_wmoves += len(pieces)
-    for pieces in bmoves:
-        num_bmoves += len(pieces)
-    # This scoring is inspired from freedom/papa's evaluation function
-    # ratio between #moveable white pieces to # moveable black pieces x ...
-    # ... x ratio of white legal moves and black legal moves
-    scr = round((movable_wpieces/movable_bpieces)*(num_wmoves/num_bmoves)*100, 5)
+    for pieces in moves:
+        num_moves += len(pieces)
+
+    scr = round((0.8*num_moves + 0.2*moveable_pieces), 5)
     return scr
 
 
@@ -74,8 +74,8 @@ def score(state, player):
     """
     Scoring function
     """
-    matscore = material_score(state)
-    #mobscore = mobility_score(state)
+    matscore = material_score(state, player)
+    #mobscore = mobility_score(state, player)
     mobscore = 0
 
     scr = (0.8*matscore) + (0.2*mobscore) #+...

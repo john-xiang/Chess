@@ -503,7 +503,7 @@ def cpu_plays():
     while not game_exit:
         if not checkmate and not stalemate:
             # Calculate best move
-            best_move = ab_negamax(curr_state, turn, -math.inf, math.inf, 2)
+            best_move = ab_negamax(curr_state, turn, -math.inf, math.inf, 1)
 
             # perform move
             curr_sq = curr_state.squares[best_move[1][0]]

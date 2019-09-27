@@ -92,8 +92,11 @@ def ab_negamax(state, player, alpha, beta, depth):
                 max_move = piece, move
                 if -negascore[0] > alpha:
                     alpha = -negascore[0]
-        #if depth == levels:
-        #    update_progress(progress+1/len(all_moves))
+        try:
+            if depth == levels:
+                update_progress(progress+1/len(all_moves))
+        except:
+            pass
     return max_score, max_move
 
 
